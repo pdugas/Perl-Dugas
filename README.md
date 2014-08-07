@@ -1,4 +1,4 @@
-Perl-Dugas-Plugin
-=================
+Perl-Dugas
+==========
 
-Custom version of the Perl Nagios::Plugin module.
+The Dugas family of Perl modules.
