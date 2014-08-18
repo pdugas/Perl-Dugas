@@ -1,0 +1,103 @@
+#!/usr/bin/perl -w
+# =============================================================================
+# Perl-Dugas - The Dugas Family of Perl Modules
+# =============================================================================
+# @file     bin/eg-app
+# @brief    Example utility program
+# @author   Paul Dugas <paul@dugas.cc>
+# =============================================================================
+
+use strict;
+
+# This is how we find the modules when they're not installed where all the
+# stock modules are kept.  We expect this program to be in the bin/
+# subdirectory and for the parent directory to have a lib/ subdirectory where
+# the Perl-Dugas modules are kept.
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Dugas::Logger;
+
+# Pull in the APP class and optionally tell us where to find things.
+#use Dugas::App(BASEDIR => '/');
+use Dugas::App;
+
+# Construct the App object and add the --error option.
+my $app = new Dugas::App( conf => 'eg.conf', 
+                          opts => [ {spec=>'error|e'} ] );
+
+# Doing something.
+info("Doing some work...");
+
+# Emit a warning.
+warn("Something's amiss...");
+
+# Check for a fatal error.
+# Run the program with the --error command-line option for this to be TRUE.
+if ($app->conf('eg', 'error', 'error')) {
+    fatal("Argh!");
+}
+
+# All good.
+debug("Done.");
+0;
+
+=head1 NAME
+
+eg-app - Example program for Dugas::App.
+
+=head1 SYNOPSIS
+
+  $ eg-app --help
+  $ eg-app -vvv
+  $ eg-app --error
+
+=head1 OPTIONS
+
+B<eg-app> accepts the standard command-line options provided by B<Dugas::App>
+plus the following additions.
+
+=over
+
+=item -e | --error 
+
+Causes the example program to terminate abnormally.
+
+=back
+
+=head1 SEE ALSO
+
+B<Dugas::App> - Program option framework.
+
+=head1 BUGS
+
+See the project page at L<http://github.com/pdugas/Perl-Dugas>.
+
+=head1 AUTHOR
+
+Paul Dugas L<mailto:paul@dugas.cc>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2013-2014 by Paul Dugas.
+
+Perl-Dugas is free software and documentation; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your option)
+any later version.
+
+The GNU General Public License's references to "object code" and "executables"
+are to be interpreted as the output of any document formatting or typesetting
+system, including intermediate and printed output.
+
+This manual is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this manual; if not, see <http://www.gnu.org/licenses/>.
+
+=cut
+
+# =============================================================================
+# vim: set et sw=4 ts=4 :

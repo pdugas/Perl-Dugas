@@ -1,0 +1,9 @@
+# Copy this file to maximo.conf in the same directory to supply credentials for
+# the unit tests to connect to Maximo.
+%CFG = (
+  'maximo' => {
+    'host' => 'maximo.example.com',
+    'user' => 'username',
+    'pass' => 'password'
+  }
+);

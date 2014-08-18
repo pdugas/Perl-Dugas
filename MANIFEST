@@ -1,0 +1,29 @@
+Changes
+LICENSE
+MANIFEST			This list of files
+MANIFEST.SKIP			This list of files to skip
+Makefile.PL
+README.md
+bin/eg-app
+bin/eg-plugin
+etc/eg.conf
+etc/maximo.conf.example
+lib/Dugas.pm
+lib/Dugas/App.pm
+lib/Dugas/Logger.pm
+lib/Dugas/Maximo.pm
+lib/Dugas/Nagios.pm
+lib/Dugas/Nagios/LiveStatus.pm
+lib/Dugas/Nagios/Plugin.pm
+t/00-load.t
+t/Dugas.t
+t/Dugas::App.t
+t/Dugas::Logger.t
+t/Dugas::Maximo.t
+t/Dugas::Nagios.t
+t/Dugas::Nagios::LiveStatus.t
+t/Dugas::Nagios::Plugin.t
+t/boilerplate.t
+t/manifest.t
+t/pod-coverage.t
+t/pod.t

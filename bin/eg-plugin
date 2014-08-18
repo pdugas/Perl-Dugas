@@ -1,0 +1,84 @@
+#!/usr/bin/perl -w
+#=============================================================================
+# Perl-Dugas - The Dugas Family of Perl Modules
+# =============================================================================
+# @file     bin/eg-plugin
+# @brief    Example Nagios plugin
+# @author   Paul Dugas <paul@dugas.cc>
+# =============================================================================
+
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use Dugas::Logger;
+use Dugas::Nagios::Plugin;
+
+my $plugin = new Dugas::Nagios::Plugin(snmp=>1, prev=>1);
+$plugin->add_arg( spec => 'foo|f', 
+                  help => "-f, --foo\n   Enable foo" );
+$plugin->getopts;
+
+$plugin->nagios_exit(OK, "All good");
+0;
+
+=head1 NAME
+
+eg-plugin - Example program for Dugas::Nagios::Plugin.
+
+=head1 SYNOPSIS
+
+  $ eg-plugin --help
+  $ eg-app -vvv
+
+=head1 OPTIONS
+
+B<eg-plugin> accepts the the standard program options provided by
+B<Dugas::Nagios::Plugin> plus the following additions.
+
+=over
+
+=item B<-f | --foo>
+
+Enabled the foo feature.  (Just an example boolean option.)
+
+=back
+
+=head1 SEE ALSO
+
+B<Dugas::Nagios::Plugin> - Nagios Plugin Framework
+
+=head1 BUGS
+
+See the project page at L<http://github.com/pdugas/Perl-Dugas>.
+
+=head1 AUTHOR
+
+Paul Dugas L<mailto:paul@dugas.cc>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2013-2014 by Paul Dugas.
+
+Perl-Dugas is free software and documentation; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your option)
+any later version.
+
+The GNU General Public License's references to "object code" and "executables"
+are to be interpreted as the output of any document formatting or typesetting
+system, including intermediate and printed output.
+
+This manual is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this manual; if not, see <http://www.gnu.org/licenses/>.
+
+  
+=cut
+
+# =============================================================================
+# vim: set et sw=4 ts=4 :

@@ -1,0 +1,203 @@
+#!/usr/bin/perl -w
+# =============================================================================
+# Perl-Dugas - The Dugas Family of Perl Modules
+# =============================================================================
+# @file     bin/eg-mx-sr
+# @brief    Example use of the Maximo API to create an SR.
+# @author   Paul Dugas <paul@dugas.cc>
+# =============================================================================
+
+use strict;
+
+use FindBin;
+use lib "$FindBin::Bin/../lib";
+
+use MIME::Base64;
+use Dugas::App;
+use Dugas::Logger;
+use Dugas::Maximo;
+
+my $app = new Dugas::App( conf => 'eg.conf', 
+                          opts => [ { spec => 'location|L=s' } ,
+                                    { spec => 'asset|A=s' } ,
+                                    { spec => 'host|H=s' },
+                                    { spec => 'user|U=s' },
+                                    { spec => 'pass|P=s' } ] );
+my $host = $app->conf('maximo', 'host', 'host');
+my $user = $app->conf('maximo', 'user', 'user');
+my $pass = $app->conf('maximo', 'pass', 'pass');
+fatal("Missing required --host option.") unless $host;
+fatal("Missing required --user option.") unless $user;
+fatal("Missing required --pass option.") unless $pass;
+fatal('Cannot use both --location and --asset.')
+  if ($app->opt('location') && $app->opt('asset'));
+
+my $mx = new Dugas::Maximo( host => $host, user => $user, pass => $pass );
+
+# Find the location
+my $loc;
+if ($app->opt('location')) {
+  $loc = $mx->get1_os('PDLOCATIONS', $app->opt('location'));
+  $loc = $mx->get1_os('PDLOCATIONS', 'LOCATION' => $app->opt('location'))
+    unless $loc;
+  fatal("Unable to find location ".$app->opt('location').".")
+    unless $loc;
+}
+#dump('loc', $loc) if $loc;
+
+# Find the asset
+my $asset;
+if ($app->opt('asset')) {
+  $asset = $mx->get1_mbo('ASSET', $app->opt('asset'));
+  $asset = $mx->get1_mbo('ASSET', 'ASSETNUM' => $app->opt('asset'))
+    unless $asset;
+  fatal("Unable to find asset ".$app->opt('asset').".")
+    unless $asset;
+}
+#dump('asset', $asset) if $asset;
+
+my $LONGDESCRIPTION = <<ENDLONGDESCRIPTION;
+<p>This is a <i>test</i> SR created by the <u>eg-mx-sr</u> program in the
+<i>Perl-Dugas</i> module.  The formatted text here is demonstrating some of the
+options we have for including details in generated SRs.</p>
+
+<p>We want to be able to make lists:
+<ul>
+  <li>Like this...</li>
+  <li style="background-color:yellow;">that...</li>
+  <li>and another.</li>
+</ul></p>
+
+<p>We need to include <a target="_blank"
+href="http://example.com/">links</a>.</p>
+ENDLONGDESCRIPTION
+
+if (-r "$FindBin::Bin/../img/example.png") {
+  debug("Adding embedded image to LONGDESCRIPTION.");
+  open (IMAGE, "$FindBin::Bin/../img/example.png") or die "$!";
+  my $png = do{ local $/ = undef; <IMAGE>; };
+  my $src = encode_base64( $png, '' );
+  $LONGDESCRIPTION .= <<ENDLONGDESCRIPTION;
+
+<p>It would be really cool if we could even embed images.<br/>
+<img src="data:image/png;base64,$src"/></p>
+ENDLONGDESCRIPTION
+}
+
+my %params = ( 
+  # This needs to be an entry in the  MX SRSOURCE domain.
+  'SRSOURCE' => 'NAGIOS', 
+
+  # A one-line title
+  'DESCRIPTION' => 'Test SR - Ignore',
+
+  # The HTML-formatted details
+  'DESCRIPTION_LONGDESCRIPTION' => $LONGDESCRIPTION,
+);
+
+
+$params{LOCATION} = $loc->{LOCATION} if ($loc);
+$params{ASSETNUM} = $asset->{ASSETNUM} if ($asset);
+
+my $res = $mx->post_os('PDSR', %params);
+dump('RESPONSE', $res);
+info("Created SR#$res->{TICKETID}.");
+
+#if ($mx->delete_mbo('SR', $res->{TICKETUID})) {
+#  info("Deleted SR#$res->{TICKETID}.");
+#}
+
+# Add a WORKLOG record
+%params = (
+  'WORKLOG.id1.LOGTYPE'     => 'CLIENTNOTE',
+  'WORKLOG.id1.WORKLOGTYPE' => 'reqnoparts', # "Required No Parts"
+  'WORKLOG.id1.DESCRIPTION' => 'Test WORKLOG',
+  'WORKLOG.id1.DESCRIPTION_LONGDESCRIPTION' => '<i>Ignore please.</i>',
+);
+my $res1 = $mx->post_os('PDSR', $res->{TICKETUID}, %params);
+dump('RESPONSE1', $res1);
+#info("Added WORKLOG#$res->{TICKETID}.");
+
+# Add a MILTIASSETLOCCI record
+%params = (
+  'MULTIASSETLOCCI.id1.LOCATION' => 'CRO-CCTV-295_36_3_N',
+);
+my $res2 = $mx->post_os('PDSR', $res->{TICKETUID}, %params);
+dump('RESPONSE2', $res2);
+#info("Added WORKLOG#$res->{TICKETID}.");
+
+
+debug("Done.");
+0;
+
+=head1 NAME
+
+eg-mx-sr - Example program for Dugas::Maximo.
+
+=head1 SYNOPSIS
+
+  $ eg-mx-sr --host HOSTNAME --user USERNAME --pass PASSWORD
+
+=head1 OPTIONS
+
+B<eg-mx-sr> accepts the standard command-line options provided by B<Dugas::App>
+plus the following additions.
+
+=over
+
+=item -H | --host HOSTNAME 
+
+Specify the Maximo hostname.  (required)
+
+=item -U | --user USERNAME 
+
+Specify the Maximo username to login with. (default: maxadmin)
+
+=item -P | --pass PASSWORD 
+
+Specify the Maximo password to login with. (default: maxadmin)
+
+=item -L | --location LOCATIONSID
+
+Specify a Maximo LOCATIONSID of the location that the SR should be associated
+with.  Cannot be used with B<--asset>.
+
+=item -A | --asset ASSETUID 
+
+Specify a Maximo ASSETUID that the SR should be associated with.  Cannot be
+used with B<--location>.
+
+=back
+
+=head1 BUGS
+
+See the project page at L<http://github.com/pdugas/Perl-Dugas>.
+
+=head1 AUTHOR
+
+Paul Dugas L<mailto:paul@dugas.cc>
+
+=head1 COPYRIGHT AND LICENSE
+
+Copyright (C) 2013-2014 by Paul Dugas.
+
+Perl-Dugas is free software and documentation; you can redistribute it and/or
+modify it under the terms of the GNU General Public License as published by the
+Free Software Foundation; either version 2 of the License, or (at your option)
+any later version.
+
+The GNU General Public License's references to "object code" and "executables"
+are to be interpreted as the output of any document formatting or typesetting
+system, including intermediate and printed output.
+
+This manual is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.  See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+this manual; if not, see <http://www.gnu.org/licenses/>.
+
+=cut
+
+# =============================================================================
+# vim: set et sw=2 ts=2 :
