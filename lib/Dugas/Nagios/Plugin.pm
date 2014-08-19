@@ -14,7 +14,7 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Config::IniFiles;
 use Net::SNMP;
-use Net::SSH2;
+use Net::OpenSSH;
 use Dugas;
 use Dugas::Logger;
 use Dugas::Nagios;
@@ -151,6 +151,8 @@ ENDUSAGE
   # The "snmp" parameter indicates we should setup for SNMP.
   my $snmp;
   if (exists $opts{snmp}) {
+    fatal("Can't use both \"snmp\" and \"ssh\" parameters in constructor.")
+      if exists $opts{ssh};
     $snmp = $opts{snmp};
     delete $opts{snmp};
     if ($snmp) {
@@ -168,7 +170,7 @@ ENDUSAGE
     delete $opts{ssh};
     if ($ssh) {
       $opts{usage} .= <<ENDUSAGE;
-       [-u username] [-p password] [-i identity]
+       [-u username] [-p password] [-k keypath]
 ENDUSAGE
     }
   }
@@ -187,9 +189,6 @@ ENDUSAGE
   $self->{ssh} = $ssh;
 
   # Setup config
-  my $DEFAULT_USER = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
-  my $DEFAULT_IDENTITY = (-r "$ENV{HOME}/.ssh/id_dsa"
-                          ? "$ENV{HOME}/.ssh/id_dsa" : '');
   my $DEFAULT_INI = <<END_DEFAULT_INI;
 [snmp]
   community=public
@@ -202,9 +201,9 @@ ENDUSAGE
   privproto=DES
   privpassword=
 [ssh]
-  username=$DEFAULT_USER
+  username=
   password=
-  identity=$DEFAULT_IDENTITY
+  keypath=
 END_DEFAULT_INI
   $self->{ini} = Config::IniFiles->new( -file => \$DEFAULT_INI );
   if ($config && -r $config) {
@@ -310,14 +309,13 @@ END_DEFAULT_INI
                    default  => $self->conf('ssh','username'));
     $self->add_arg(spec     => 'password|p=s',
                    help     => "-p, --password=STRING\n".
-                               "   SSH password (default: ".
-                               $self->conf('ssh','password').")",
+                               "   SSH password",
                    default  => $self->conf('ssh','password'));
-    $self->add_arg(spec     => 'identity|i=s',
-                   help     => "-i, --identity=FILENAME\n".
-                               "   SSH identity file (default: ".
-                               $self->conf('ssh','identity').")",
-                   default  => $self->conf('ssh','identity'));
+    $self->add_arg(spec     => 'keypath|k=s',
+                   help     => "-k, --keypath=FILENAME\n".
+                               "   SSH private key file (default: ".
+                               $self->conf('ssh','keypath').")",
+                   default  => $self->conf('ssh','keypath'));
   }
 
   # Done
@@ -635,10 +633,10 @@ sub snmp_get {
   };
   $self->fatal("Eval error; $@") if ($@);
   if ($self->snmp->error_status() == 2) {
-    $self->error($self->snmp->error().
-                  '; OID='.$oids[$self->snmp->error_index()-1]);
+    warn($self->snmp->error().
+         '; OID='.$oids[$self->snmp->error_index()-1]);
   } elsif ($self->snmp->error_status()) {
-    $self->error($self->snmp->error());
+    error($self->snmp->error());
   }
 
   my $ret = {};
@@ -693,8 +691,8 @@ constructor.
 
 =head2 ssh ( )
 
-Returns a B<Net::SSH2> object configured using the program options provided and
-runtime configuration.
+Returns a B<Net::OpenSSH> object configured using the program options provided
+and runtime configuration.
 
 =cut
 
@@ -706,28 +704,34 @@ sub ssh {
     return undef;
   }
 
-  unless ($self->{ssh2}) {
-    $self->{ssh2} = new Net::SSH2;
-    $self->{ssh2}->connect($self->opts->hostname) 
-      or fatal("SSH connection failed; $!");
-    if ($self->opts->identity) {
-      $self->{ssh2}->auth_publickey( $self->opts->username,
-                                     $self->opts->pubkey,
-				     $self->opts->privkey,
-				     $self->opts->password )
-        or fatal("SSH public key auth failed; $!");
-    } else {
-      $self->{ssh2}->auth_password( $self->opts->username,
-				    $self->opts->password )
-        or fatal("SSH password auth failed; $!");
+  unless ($self->{openssh}) {
+    my %opts = ();
+    $opts{user} = $self->opts->username if $self->opts->username;
+    $opts{password} = $self->opts->password if $self->opts->password;
+    $opts{key_path} = $self->opts->keypath if $self->opts->keypath;
+    my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
+    if ($ssh->error) {
+      error("SSH to ".$self->opts->hostname." failed; ".$ssh->error);
+      return undef;
     }
+    $self->{openssh} = $ssh;
   }
-  return $self->{ssh2};
+  return $self->{openssh};
 }
 
-sub ssh_cmd {
+sub ssh_system {
   my $self = shift or confess("Missing SELF parameter");
-  return $self->ssh()->cmd(@_);
+  return $self->ssh()->system(@_);
+}
+
+sub ssh_capture {
+  my $self = shift or confess("Missing SELF parameter");
+  return $self->ssh()->capture(@_);
+}
+
+sub ssh_pipe {
+  my $self = shift or confess("Missing SELF parameter");
+  return $self->ssh()->pipe_in(@_);
 }
 
 =head1 UTILITY SUBROUTINES
