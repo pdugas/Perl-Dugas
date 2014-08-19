@@ -14,6 +14,7 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Config::IniFiles;
 use Net::SNMP;
+use Net::SSH::Perl;
 use Dugas;
 use Dugas::Logger;
 use Dugas::Nagios;
@@ -80,17 +81,27 @@ process.  See the L<CONFIGURATION> section below.  If not specified, the
 constructor will look for L<etc/nagios.conf>.  No warning is given if this
 file cannot be read.
 
-=item B<snmp =E<gt> BOOL>
+=item B<local =E<gt> BOOL>
 
-If the B<BOOL> value is TRUE, the plugin will be configured to use SNMP.  This
-adds a number of command-line options and the B<SNMP> methods.  See the
-L<SNMP METHODS> section below.
+If the B<BOOL> value is TRUE, the plugin will not have a B<--hostname> option
+and instead expect to be checking a "local" service.
 
 =item B<prev =E<gt> BOOL>
 
 If the B<BOOL> value is TRUE, the plugin will expect to get the PERFDATA 
 output and timestamp from a prior run of the plugin.  This adds the 
 B<--prev-perfdata> and B<--prev-checktime> program options.
+
+=item B<snmp =E<gt> BOOL>
+
+If the B<BOOL> value is TRUE, the plugin will be configured to use SNMP.  This
+adds a number of command-line options as well as the I<snmp_get()> and
+I<snmp_get_table()> methods.  See the L<SNMP METHODS> section below.
+
+=item B<ssh =E<gt> BOOL>
+
+If the B<BOOL> value is TRUE, the plugin will be configured to use SSH adding
+a number of program options and the I<ssh()> method.
 
 =back 
 
@@ -117,17 +128,11 @@ ENDEXTRA
   $opts{usage} = "Usage: %s [-v] [--config CONFIG] [--log LOG] [-H HOST]\n"
     unless $opts{usage};
 
-  # The "snmp" parameter indicates we should setup for SNMP.
-  my $snmp;
-  if (exists $opts{snmp}) {
-    $snmp = $opts{snmp};
-    delete $opts{snmp};
-    if ($snmp) {
-      $opts{usage} .= <<ENDUSAGE;
-       [-C community] [-p port] [-1|2|2c|3] [-L seclevel] [-U secname] 
-       [-a authproto] [-A authpass] [-x privproto] [-X privpass]
-ENDUSAGE
-    }
+  # The "local" parameter indicates no --hostname option
+  my $local;
+  if (exists $opts{'local'}) {
+    $local = $opts{'local'};
+    delete $opts{'local'};
   }
 
   # The "prev" parameter indicates we should setup handling previous PERFDATA.
@@ -143,6 +148,31 @@ ENDUSAGE
     }
   }
 
+  # The "snmp" parameter indicates we should setup for SNMP.
+  my $snmp;
+  if (exists $opts{snmp}) {
+    $snmp = $opts{snmp};
+    delete $opts{snmp};
+    if ($snmp) {
+      $opts{usage} .= <<ENDUSAGE;
+       [-C community] [-p port] [-1|2|2c|3] [-L seclevel] [-U secname] 
+       [-a authproto] [-A authpass] [-x privproto] [-X privpass]
+ENDUSAGE
+    }
+  }
+
+  # The "ssh" parameter indicates we should setup for SSH.
+  my $ssh;
+  if (exists $opts{ssh}) {
+    $ssh = $opts{ssh};
+    delete $opts{ssh};
+    if ($ssh) {
+      $opts{usage} .= <<ENDUSAGE;
+       (SSH options go here)
+ENDUSAGE
+    }
+  }
+
   # Save the "config" setting and don't pass it to the base class.
   my $config = $opts{config} || $FindBin::Bin.'/../etc/nagios.conf';
   delete $opts{config};
@@ -150,7 +180,17 @@ ENDUSAGE
   # Construct Nagios::Plugin baseclass
   my $self = $class->SUPER::new(%opts);
 
+  # Save these
+  $self->{local} = $local;
+  $self->{prev} = $prev;
+  $self->{snmp} = $snmp;
+  $self->{ssh} = $ssh;
+
   # Setup config
+  my $DEFAULT_USER = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
+  my $DEFAULT_IDENTITY = (-r "$ENV{HOME}/.ssh/id_dsa" ? "$ENV{HOME}/.ssh/id_dsa"
+                          : (-r "$ENV{HOME}/.ssh/id_rsa"
+                             ? "$ENV{HOME}/.ssh/id_rsa" : ""));
   my $DEFAULT_INI = <<END_DEFAULT_INI;
 [snmp]
   community=public
@@ -162,6 +202,10 @@ ENDUSAGE
   authpassword=
   privproto=DES
   privpassword=
+[ssh]
+  username=$DEFAULT_USER
+  password=
+  identity=$DEFAULT_IDENTITY
 END_DEFAULT_INI
   $self->{ini} = Config::IniFiles->new( -file => \$DEFAULT_INI );
   if ($config && -r $config) {
@@ -183,7 +227,23 @@ END_DEFAULT_INI
                              "   Log file");
   $self->add_arg(spec     => 'hostname|H=s',
                  help     => "-H, --hostname=STRING\n".
-                             "   Hostname or IP address");
+                             "   Hostname or IP address")
+    unless $local;
+
+  # Add the PREVIOUS arguments
+  #   - Using -P and -T after seeing a handful of existing plugins us it.
+  if ($prev) {
+    $self->add_arg(spec     => 'prev-perfdata|P=s',
+                   help     => "-P, --prev-perfdata=PERFDATA\n".
+                               "   Previous PERFDATA from Nagios, ".
+                               "i.e. \$SERVICEPERFDATA\$",
+                   default  => undef);
+    $self->add_arg(spec     => 'prev-checktime|T=s',
+                   help     => "-T, --prev-checktime=TIMESTAMP\n".
+                               "   Previous check time from Nagios, ".
+                               "i.e. \$LASTSERVICECHECK\$",
+                   default  => undef);
+  }
 
   # Add the SNMP arguments
   if ($snmp) {
@@ -242,19 +302,23 @@ END_DEFAULT_INI
                    default  => $self->conf('snmp','privpassword'));
   }
 
-  # Add the PREVIOUS arguments
-  #   - Using -P and -T after seeing a handful of existing plugins us it.
-  if ($prev) {
-    $self->add_arg(spec     => 'prev-perfdata|P=s',
-                   help     => "-P, --prev-perfdata=PERFDATA\n".
-                               "   Previous PERFDATA from Nagios, ".
-                               "i.e. \$SERVICEPERFDATA\$",
-                   default  => undef);
-    $self->add_arg(spec     => 'prev-checktime|T=s',
-                   help     => "-T, --prev-checktime=TIMESTAMP\n".
-                               "   Previous check time from Nagios, ".
-                               "i.e. \$LASTSERVICECHECK\$",
-                   default  => undef);
+  # Add the SSH arguments
+  if ($ssh) {
+    $self->add_arg(spec     => 'username|u=s',
+                   help     => "-u, --username=STRING\n".
+                               "   SSH username (default: ".
+                               $self->conf('ssh','username').")",
+                   default  => $self->conf('ssh','username'));
+    $self->add_arg(spec     => 'password|p=s',
+                   help     => "-p, --password=STRING\n".
+                               "   SSH password (default: ".
+                               $self->conf('ssh','password').")",
+                   default  => $self->conf('ssh','password'));
+    $self->add_arg(spec     => 'identity|i=s',
+                   help     => "-i, --identity=FILENAME\n".
+                               "   SSH identity file (default: ".
+                               $self->conf('ssh','identity').")",
+                   default  => $self->conf('ssh','identity'));
   }
 
   # Done
@@ -292,33 +356,35 @@ sub getopts {
   $lvl += $self->opts->verbose || $self->conf('logger', 'verbose', 0);
   Dugas::Logger::level($lvl);
 
-  # Check PROTOCOL.
-  $self->{proto} = undef;
-  if (defined $self->opts->protocol) {
-    if ($self->opts->protocol =~ /^\s*1\s*$/) {
+  if ($self->{snmp}) {
+    # Check PROTOCOL.
+    $self->{proto} = undef;
+    if (defined $self->opts->protocol) {
+      if ($self->opts->protocol =~ /^\s*1\s*$/) {
+        $self->{proto} = 1;
+      } elsif ($self->opts->protocol =~ /^\s*2c?\s*$/i) {
+        $self->{proto} = 2;
+      } elsif ($self->opts->protocol =~ /^\s*3\s*$/i) {
+        $self->{proto} = 3;
+      }
+    }
+    if (defined $self->opts->{'1'}) {
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+        if defined $self->{proto};
       $self->{proto} = 1;
-    } elsif ($self->opts->protocol =~ /^\s*2c?\s*$/i) {
+    }
+    if (defined $self->opts->{'2c'}) {
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+        if defined $self->{proto};
       $self->{proto} = 2;
-    } elsif ($self->opts->protocol =~ /^\s*3\s*$/i) {
+    }
+    if (defined $self->opts->{'3'}) {
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+        if defined $self->{proto};
       $self->{proto} = 3;
     }
+    $self->{proto} = 1 unless $self->{proto};
   }
-  if (defined $self->opts->{'1'}) {
-    fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
-      if defined $self->{proto};
-    $self->{proto} = 1;
-  }
-  if (defined $self->opts->{'2c'}) {
-    fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
-      if defined $self->{proto};
-    $self->{proto} = 2;
-  }
-  if (defined $self->opts->{'3'}) {
-    fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
-      if defined $self->{proto};
-    $self->{proto} = 3;
-  }
-  $self->{proto} = 1 unless $self->{proto};
 
   # Setup logfile.
   if (my $log = $self->opts->log || $self->conf('logger', 'logfile')) {
@@ -471,7 +537,12 @@ provided and runtime configuration.
 =cut
 
 sub snmp {
-  my $self = shift;
+  my $self = shift or confess('MISSING SELF parameter');
+
+  unless ($self->{snmp}) {
+    error("Plugin not configured for SNMP!");
+    return undef;
+  }
 
   unless ($self->{snmpSession}) {
 
@@ -547,7 +618,7 @@ Returns UNDEF if there is an error.
 
 =cut
 
-sub snmp_get($$;@) {
+sub snmp_get {
   my $self = shift or confess("Missing SELF parameter");
   confess("Missing OID parameters") unless @_;
 
@@ -614,6 +685,44 @@ sub snmp_get_table {
   }
 
   return $ret;
+}
+
+=head1 SSH METHODS
+
+The following methods are enabled if the C<ssh> parameter was passed to the
+constructor.
+
+=head2 ssh ( )
+
+Returns a B<Net::SSH::Perl> object configured using the program options
+provided and runtime configuration.
+
+=cut
+
+sub ssh {
+  my $self = shift or confess('MISSING SELF parameter');
+
+  unless ($self->{ssh}) {
+    error("Plugin not configured for SSH!");
+    return undef;
+  }
+
+  unless ($self->{ssh_obj}) {
+    $self->{ssh_obj} = new Net::SSH::Perl(
+		    $self->opts->hostname, 
+		    protocol       => "2,1",
+		    identity_files => [ $self->opts->identity ],
+                    debug          => 1,
+		    );
+
+    $self->{ssh_obj}->login($self->opts->username, $self->opts->password);
+  }
+  return $self->{ssh_obj};
+}
+
+sub ssh_cmd {
+  my $self = shift or confess("Missing SELF parameter");
+  return $self->ssh()->cmd(@_);
 }
 
 =head1 UTILITY SUBROUTINES
