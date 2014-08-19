@@ -14,7 +14,7 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Config::IniFiles;
 use Net::SNMP;
-use Net::SSH::Perl;
+use Net::SSH2;
 use Dugas;
 use Dugas::Logger;
 use Dugas::Nagios;
@@ -168,7 +168,7 @@ ENDUSAGE
     delete $opts{ssh};
     if ($ssh) {
       $opts{usage} .= <<ENDUSAGE;
-       (SSH options go here)
+       [-u username] [-p password] [-i identity]
 ENDUSAGE
     }
   }
@@ -188,9 +188,8 @@ ENDUSAGE
 
   # Setup config
   my $DEFAULT_USER = $ENV{LOGNAME} || $ENV{USER} || getpwuid($<);
-  my $DEFAULT_IDENTITY = (-r "$ENV{HOME}/.ssh/id_dsa" ? "$ENV{HOME}/.ssh/id_dsa"
-                          : (-r "$ENV{HOME}/.ssh/id_rsa"
-                             ? "$ENV{HOME}/.ssh/id_rsa" : ""));
+  my $DEFAULT_IDENTITY = (-r "$ENV{HOME}/.ssh/id_dsa"
+                          ? "$ENV{HOME}/.ssh/id_dsa" : '');
   my $DEFAULT_INI = <<END_DEFAULT_INI;
 [snmp]
   community=public
@@ -694,8 +693,8 @@ constructor.
 
 =head2 ssh ( )
 
-Returns a B<Net::SSH::Perl> object configured using the program options
-provided and runtime configuration.
+Returns a B<Net::SSH2> object configured using the program options provided and
+runtime configuration.
 
 =cut
 
@@ -707,17 +706,23 @@ sub ssh {
     return undef;
   }
 
-  unless ($self->{ssh_obj}) {
-    $self->{ssh_obj} = new Net::SSH::Perl(
-		    $self->opts->hostname, 
-		    protocol       => "2,1",
-		    identity_files => [ $self->opts->identity ],
-                    debug          => 1,
-		    );
-
-    $self->{ssh_obj}->login($self->opts->username, $self->opts->password);
+  unless ($self->{ssh2}) {
+    $self->{ssh2} = new Net::SSH2;
+    $self->{ssh2}->connect($self->opts->hostname) 
+      or fatal("SSH connection failed; $!");
+    if ($self->opts->identity) {
+      $self->{ssh2}->auth_publickey( $self->opts->username,
+                                     $self->opts->pubkey,
+				     $self->opts->privkey,
+				     $self->opts->password )
+        or fatal("SSH public key auth failed; $!");
+    } else {
+      $self->{ssh2}->auth_password( $self->opts->username,
+				    $self->opts->password )
+        or fatal("SSH password auth failed; $!");
+    }
   }
-  return $self->{ssh_obj};
+  return $self->{ssh2};
 }
 
 sub ssh_cmd {
