@@ -85,6 +85,26 @@ sub sec2dhms($) {
   }
 } # sec2dhms()
 
+=head2 STRING = human( INTEGER )
+
+Convert a given number into a human-readable string.
+
+=cut
+
+sub human {
+  my $b = shift; confess("Missing INTEGER parameter") unless defined $b;
+  confess("INTEGER parameter cannot be negative") if $b < 0;
+  if ($b > 2**80) { return sprintf('%.1fY', $b / 2**80); }
+  if ($b > 2**70) { return sprintf('%.1fZ', $b / 2**70); }
+  if ($b > 2**60) { return sprintf('%.1fE', $b / 2**60); }
+  if ($b > 2**50) { return sprintf('%.1fP', $b / 2**50); }
+  if ($b > 2**40) { return sprintf('%.1fT', $b / 2**40); }
+  if ($b > 2**30) { return sprintf('%.1fG', $b / 2**30); }
+  if ($b > 2**20) { return sprintf('%.1fM', $b / 2**20); }
+  if ($b > 2**10) { return sprintf('%.1fk', $b / 2**10); }
+  return sprintf('%dB', $b); 
+}
+
 =head1 AUTHOR
 
 Paul Dugas, <paul@dugas.cc>

@@ -659,8 +659,8 @@ Returns UNDEF if there is an error.
 =cut
 
 sub snmp_get_table {
-  my $self  = shift  or confess("Missing SELF parameter");
-  my $table = shift  or confess("Missing TABLE_OID parameter");
+  my $self  = shift or confess("Missing SELF parameter");
+  my $table = shift or confess("Missing TABLE_OID parameter");
   my $names = shift;
 
   my $ret;
