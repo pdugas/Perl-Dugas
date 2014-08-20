@@ -674,11 +674,15 @@ sub snmp_get_table {
   error($self->snmp->error()) if ($self->snmp->error_status());
 
   if ($names && (ref $names eq ref {})) {
-      my %lookup; @lookup{values %{$names}} = keys %{$names};
-      foreach (keys %{$ret}) {
-          fatal("huh?") unless /^(.*)\.(\d+)$/;
-          if ($lookup{$1}) { $ret->{$lookup{$1}.".$2"} = $ret->{$_}; }
+    foreach my $oid (keys %$ret) {
+      fatal("huh?") unless $oid =~ /^(.*)\.(\d+)$/;
+      foreach (keys %$names) {
+        if ($oid =~ /^$names->{$_}\.?(.*)$/) {
+          $ret->{"$_.$1"} = $ret->{$oid};
+          last;
+        }
       }
+    }
   }
 
   return $ret;
@@ -815,3 +819,6 @@ Paul Dugas may be contacted at the addresses below:
 =cut
 
 1; # End of Dugas::Nagios::Plugin
+
+# -----------------------------------------------------------------------------
+# vim: set et ts=2 sw=2 :
