@@ -555,21 +555,21 @@ sub snmp {
 
     if ($self->{proto} == 3) {
 
-      $self->fatal("Both --seclevel and --secname required for SNMPv3")
+      fatal("Both --seclevel and --secname required for SNMPv3")
         unless ($self->opts->seclevel && $self->opts->secname);
 
       $opts{username} = $self->opts->secname;
 
-      $self->fatal("Invalid --seclevel value; \"$self->opts->seclevel\"")
+      fatal("Invalid --seclevel value; \"$self->opts->seclevel\"")
         unless ($self->opts->seclevel =~ /^(no)?auth(no)?priv$/i);
       my ($auth, $priv) = (!$1, !$2);
 
       if ($auth) {
-        $self->fatal("Invalid --authproto value; \"$self->opts->authproto\"")
+        fatal("Invalid --authproto value; \"$self->opts->authproto\"")
           unless ($self->opts->authproto =~ /^(MD5|SHA)$/i);
         $opts{authprotocol} = $self->opts->authproto;
 
-        $self->fatal("Missing --authpassword")
+        fatal("Missing --authpassword")
           unless (defined $self->opts->authpassword);
         if ($self->opts->authpassword =~ /^0x/) {
           $opts{authkey} = $self->opts->authpassword;
@@ -579,11 +579,11 @@ sub snmp {
       }
 
       if ($priv) {
-        $self->fatal("Invalid --privproto value; \"$self->opts->privproto\"")
+        fatal("Invalid --privproto value; \"$self->opts->privproto\"")
           unless ($self->opts->privproto =~ /^(DES|AES)$/i);
         $opts{privprotocol} = $self->opts->privproto;
 
-        $self->fatal("Missing --privpassword")
+        fatal("Missing --privpassword")
           unless (defined $self->opts->privpassword);
         if ($self->opts->privpassword =~ /^0x/) {
           $opts{privkey} = $self->opts->privpassword;
@@ -595,7 +595,7 @@ sub snmp {
     } # if SNMPv3
 
     my ($snmp, $error) = Net::SNMP->session(%opts);
-    $self->fatal("SNMP error; $error") unless (defined $snmp);
+    fatal("SNMP error; $error") unless (defined $snmp);
     $self->{snmpSession} = $snmp;
   }
   return $self->{snmpSession};
@@ -626,12 +626,12 @@ sub snmp_get {
   my @oids = values %names;
   my $vals;
   eval {
-    local $SIG{ALRM} = sub { $self->fatal('SNMP timeout'); };
+    local $SIG{ALRM} = sub { fatal('SNMP timeout'); };
     alarm $self->opts->timeout;
     $vals = $self->snmp->get_request(varbindlist => [@oids]);
     alarm 0;
   };
-  $self->fatal("Eval error; $@") if ($@);
+  fatal("Eval error; $@") if ($@);
   if ($self->snmp->error_status() == 2) {
     warn($self->snmp->error().
          '; OID='.$oids[$self->snmp->error_index()-1]);
@@ -665,7 +665,7 @@ sub snmp_get_table {
 
   my $ret;
   eval {
-    local $SIG{ALRM} = sub { $self->fatal('SNMP timeout'); };
+    local $SIG{ALRM} = sub { fatal('SNMP timeout'); };
     alarm $self->opts->timeout;
     $ret = $self->snmp->get_table(baseoid => $table);
     alarm 0;
