@@ -12,6 +12,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
+use Carp;
 use Config::IniFiles;
 use Dugas;
 use Dugas::Logger;
@@ -341,6 +342,9 @@ sub getopts {
 
   pod2usage(-exitval => 0, -verbose => 2)
     if ($self->opts->manual);
+
+  confess("Missing --hostname option")
+    if (!$self->{local} && !defined $self->opts->hostname);
 
   # Load CONFIG.
   if ($self->opts->config) {
