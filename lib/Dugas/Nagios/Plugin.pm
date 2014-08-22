@@ -13,11 +13,12 @@ use strict;
 use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Config::IniFiles;
-use Net::SNMP;
-use Net::OpenSSH;
 use Dugas;
 use Dugas::Logger;
 use Dugas::Nagios;
+use Net::OpenSSH;
+use Net::SNMP;
+use Pod::Usage;
 
 =head1 NAME
 
@@ -157,7 +158,7 @@ ENDUSAGE
     delete $opts{snmp};
     if ($snmp) {
       $opts{usage} .= <<ENDUSAGE;
-       [-C community] [-p port] [-1|2|2c|3] [-L seclevel] [-U secname] 
+       [-c community] [-p port] [-1|2|2c|3] [-L seclevel] [-u secname] 
        [-a authproto] [-A authpass] [-x privproto] [-X privpass]
 ENDUSAGE
     }
@@ -217,6 +218,9 @@ END_DEFAULT_INI
   }
 
   # Add the standard arguments
+  $self->add_arg(spec     => 'manual|manpage|man',
+                 help     => "--man, --manpage, --manual\n".
+                             "   Display the manpage");
   $self->add_arg(spec     => 'config|C=s',
                  help     => "-C, --config=STRING\n".
                              "   Runtime config file");
@@ -335,6 +339,9 @@ sub getopts {
   my $self = shift;
   $self->SUPER::getopts();
 
+  pod2usage(-exitval => 0, -verbose => 2)
+    if ($self->opts->manual);
+
   # Load CONFIG.
   if ($self->opts->config) {
     die("Can't find or read ".$self->opts->config)
@@ -366,17 +373,17 @@ sub getopts {
       }
     }
     if (defined $self->opts->{'1'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
         if defined $self->{proto};
       $self->{proto} = 1;
     }
     if (defined $self->opts->{'2c'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
         if defined $self->{proto};
       $self->{proto} = 2;
     }
     if (defined $self->opts->{'3'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version.")
+      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
         if defined $self->{proto};
       $self->{proto} = 3;
     }
@@ -548,6 +555,8 @@ sub snmp {
       port      => $self->opts->snmpport,
       version   => $self->{proto},
       translate => [ timeticks => 0 ],
+      timeout   => $self->opts->timeout,
+      retries   => 0,
     );
 
     $opts{community} = $self->opts->community
@@ -595,7 +604,8 @@ sub snmp {
     } # if SNMPv3
 
     my ($snmp, $error) = Net::SNMP->session(%opts);
-    fatal("SNMP error; $error") unless (defined $snmp);
+    $self->nagios_exit(Nagios::Plugin::UNKNOWN, 
+                       "SNMP error; $error") unless (defined $snmp);
     $self->{snmpSession} = $snmp;
   }
   return $self->{snmpSession};
@@ -624,14 +634,7 @@ sub snmp_get {
   foreach (@_) { $names{$_} = $_; }
 
   my @oids = values %names;
-  my $vals;
-  eval {
-    local $SIG{ALRM} = sub { fatal('SNMP timeout'); };
-    alarm $self->opts->timeout;
-    $vals = $self->snmp->get_request(varbindlist => [@oids]);
-    alarm 0;
-  };
-  fatal("Eval error; $@") if ($@);
+  my $vals = $self->snmp->get_request(varbindlist => [@oids]);
   if ($self->snmp->error_status() == 2) {
     warn($self->snmp->error().
          '; OID='.$oids[$self->snmp->error_index()-1]);
@@ -640,9 +643,11 @@ sub snmp_get {
   }
 
   my $ret = {};
-  foreach (keys %names) {
+  if ($vals) {
+    foreach (keys %names) {
       my $oid = $names{$_};
       $ret->{$_} = $ret->{$oid} = $vals->{$oid};
+    }
   }
   return $ret;
 }
@@ -663,19 +668,13 @@ sub snmp_get_table {
   my $table = shift or confess("Missing TABLE_OID parameter");
   my $names = shift;
 
-  my $ret;
-  eval {
-    local $SIG{ALRM} = sub { fatal('SNMP timeout'); };
-    alarm $self->opts->timeout;
-    $ret = $self->snmp->get_table(baseoid => $table);
-    alarm 0;
-  };
-  fatal("Eval error; $@") if ($@);
-  error($self->snmp->error()) if ($self->snmp->error_status());
+  my $ret = $self->snmp->get_table(baseoid => $table);
+  $self->nagios_exit(Nagios::Plugin::UNKNOWN, $self->snmp->error())
+    if ($self->snmp->error_status());
 
-  if ($names && (ref $names eq ref {})) {
+  if ($ret && $names && (ref $names eq ref {})) {
     foreach my $oid (keys %$ret) {
-      fatal("huh?") unless $oid =~ /^(.*)\.(\d+)$/;
+      next unless $oid =~ /^(.*)\.(\d+)$/; # XXX should we warn?
       foreach (keys %$names) {
         if ($oid =~ /^$names->{$_}\.?(.*)$/) {
           $ret->{"$_.$1"} = $ret->{$oid};
