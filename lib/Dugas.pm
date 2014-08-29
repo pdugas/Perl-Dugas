@@ -24,86 +24,9 @@ Version 0.01
 
 our $VERSION = '0.01';
 
+=head1 SEE ALSO
 
-=head1 SYNOPSIS
-
-The B<Dugas> module is a catch-all for definitions and utility subroutines that
-don't fit any better elsewhere.
-
-    use Dugas;
-
-    my $dhms = sec2dhms($secs);
-
-=head1 EXPORT
-
-The following are automatically exported:
-  * sec2dhms()
-
-=head1 CONSTANTS
-
-(none)
-
-=head1 SUBROUTINES
-
-=head2 $dhms = sec2dhms(SECS)
-
-Convert a timespan in seconds to a string containing the corresponding numbers
-of days, hours, minutes, and seconds. 
-
-i.e. sec2dhms(1234567.89) returns "14 days 06:56:07.89"
-
-=cut
-
-sub sec2dhms($) {
-  # Implementation taken directly from Net::SNMP::Message::asn1_ticks_to_time()
-  # and copied here to eliminate the dependency on the Net::SNMP module where
-  # possible.
-  my $ticks = (shift || 0) * 100;
-
-  my $days = int($ticks / (24 * 60 * 60 * 100));
-  $ticks %= (24 * 60 * 60 * 100);
-
-  my $hours = int($ticks / (60 * 60 * 100));
-  $ticks %= (60 * 60 * 100);
-
-  my $minutes = int($ticks / (60 * 100));
-  $ticks %= (60 * 100);
-
-  my $seconds = ($ticks / 100);
-
-  if ($days != 0){
-      return sprintf '%d day%s %02d:%02d:%05.02f', $days,
-      ($days == 1 ? q{} : 's'), $hours, $minutes, $seconds;
-  } elsif ($hours != 0) {
-      return sprintf '%d hour%s %02d:%05.02f', $hours,
-      ($hours == 1 ? q{} : 's'), $minutes, $seconds;
-  } elsif ($minutes != 0) {
-      return sprintf '%d minute%s %05.02f', $minutes,
-      ($minutes == 1 ? q{} : 's'), $seconds;
-  } else {
-      return sprintf '%04.02f second%s', $seconds, ($seconds == 1 ? q{} : 's');
-  }
-} # sec2dhms()
-
-=head2 STRING = human( INTEGER )
-
-Convert a given number into a human-readable string.
-
-=cut
-
-sub human {
-  my $b = shift; confess("Missing INTEGER parameter") unless defined $b;
-  confess("INTEGER parameter cannot be negative") if $b < 0;
-  if ($b > 2**80) { return sprintf('%.1fY', $b / 2**80); }
-  if ($b > 2**70) { return sprintf('%.1fZ', $b / 2**70); }
-  if ($b > 2**60) { return sprintf('%.1fE', $b / 2**60); }
-  if ($b > 2**50) { return sprintf('%.1fP', $b / 2**50); }
-  if ($b > 2**40) { return sprintf('%.1fT', $b / 2**40); }
-  if ($b > 2**30) { return sprintf('%.1fG', $b / 2**30); }
-  if ($b > 2**20) { return sprintf('%.1fM', $b / 2**20); }
-  if ($b > 2**10) { return sprintf('%.1fk', $b / 2**10); }
-  return sprintf('%dB', $b); 
-}
+B<Dugas::Util>, B<Dugas::Logger>, B<Dugas::App>, 
 
 =head1 AUTHOR
 

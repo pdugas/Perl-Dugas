@@ -14,7 +14,7 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Carp;
 use Config::IniFiles;
-use Dugas;
+use Dugas::Util;
 use Dugas::Logger;
 use Dugas::Nagios;
 use Net::OpenSSH;
@@ -726,15 +726,36 @@ sub ssh {
   return $self->{openssh};
 }
 
+=head2 ssh_system ( )
+
+Shorthand for the system() method on the B<Net::OpenSSH> object returned by the
+ssh() method.
+
+=cut
+
 sub ssh_system {
   my $self = shift or confess("Missing SELF parameter");
   return $self->ssh()->system(@_);
 }
 
+=head2 ssh_capture ( )
+
+Shorthand for the capture() method on the B<Net::OpenSSH> object returned by
+the ssh() method.
+
+=cut
+
 sub ssh_capture {
   my $self = shift or confess("Missing SELF parameter");
   return $self->ssh()->capture(@_);
 }
+
+=head2 ssh_pipe ( )
+
+Shorthand for the pipe() method on the B<Net::OpenSSH> object returned by the
+ssh() method.
+
+=cut
 
 sub ssh_pipe {
   my $self = shift or confess("Missing SELF parameter");
