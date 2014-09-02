@@ -416,4 +416,4 @@ Paul Dugas may be contacted at the addresses below:
 1; # End of Dugas::App
 
 # =============================================================================
-# vim: set et sw=2 tw=2 :
+# vim: set et sw=2 ts=2 :

@@ -14,6 +14,7 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Carp;
 use Config::IniFiles;
+use Params::Validate qw(:all);
 use Dugas::Util;
 use Dugas::Logger;
 use Dugas::Nagios;
@@ -122,12 +123,12 @@ sub new {
     unless $opts{version};
   $opts{extra} = ""
     unless $opts{extra};
-  $opts{extra} .= <<ENDEXTRA;
-
-Please submit defect reports or feature requests to the project at
-http://github.com/pdugas/Perl-Dugas/.
-ENDEXTRA
-  $opts{usage} = "Usage: %s [-v] [--config CONFIG] [--log LOG] [-H HOST]\n"
+#  $opts{extra} .= <<ENDEXTRA;
+#
+#Please submit defect reports or feature requests to the project at
+#http://github.com/pdugas/Perl-Dugas/.
+#ENDEXTRA
+  $opts{usage} = "Usage: %s [-v] [-C config] [-L log] [-H hostname]\n"
     unless $opts{usage};
 
   # The "local" parameter indicates no --hostname option
@@ -159,8 +160,9 @@ ENDUSAGE
     delete $opts{snmp};
     if ($snmp) {
       $opts{usage} .= <<ENDUSAGE;
-       [-c community] [-p port] [-1|2|2c|3] [-L seclevel] [-u secname] 
-       [-a authproto] [-A authpass] [-x privproto] [-X privpass]
+       [-c snmp_community] [-p snmp_port] [--protocol version|-1|-2|-3] 
+       [-l seclevel] [-u secname] [-a authproto] [-A authpasswd] 
+       [-x privproto] [-x privpasswd] [--user username] [--pass passwd] 
 ENDUSAGE
     }
   }
@@ -343,7 +345,7 @@ sub getopts {
   pod2usage(-exitval => 0, -verbose => 2)
     if ($self->opts->manual);
 
-  confess("Missing --hostname option")
+  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "Missing --hostname option")
     if (!$self->{local} && !defined $self->opts->hostname);
 
   # Load CONFIG.
@@ -691,6 +693,28 @@ sub snmp_get_table {
   return $ret;
 }
 
+=head2 snmp_walk( OID, [ NAMES ] )
+
+=cut
+
+sub snmp_walk {
+  my $self  = shift or confess("Missing SELF parameter");
+  my $oid   = shift or confess("Missing OID parameter");
+  my $names = shift;
+  my $base  = $oid;
+  my $ret   = {};
+  debug("get_next_request($oid)");
+  while (defined $self->snmp->get_next_request(-varbindlist => [$oid])) {
+    $oid = ($self->snmp->var_bind_names())[0];
+    debug("got $oid");
+    last unless Net::SNMP::oid_base_match($base, $oid);
+    $ret->{$oid} = $self->snmp->var_bind_list()->{$oid};
+    debug("$oid = $ret->{$oid}");
+    debug("get_next_request($oid)");
+  }
+  return $ret;
+}
+
 =head1 SSH METHODS
 
 The following methods are enabled if the C<ssh> parameter was passed to the
@@ -762,7 +786,201 @@ sub ssh_pipe {
   return $self->ssh()->pipe_in(@_);
 }
 
-=head1 UTILITY SUBROUTINES
+=head1 OTHER METHODS
+
+=head2 $make = probe_host ( )
+=head2 ($make, $sysinfo, $extra) = probe_host ( )
+
+The B<probe_host() method tries to identify the make (i.e. manufacturer or
+vendor name) of a host.  In scalar context, a string is returned.  In array
+context, a hashref containing the SNMP sysInfo and an extra result that may
+be defined and contain additional results from the probe.
+
+This routine only functions if the C<snmp> parameter was passed to the
+constructor and the C<local> parameter was not.  This routine relies on SNMP.
+
+=cut
+
+# These extra_*() routines are used to refine the MAKE result of probe_host()
+# when the sysObjectID value is generic.  The idea is to look at additional
+# data in the given SYSINFO objects or to probe the device further.
+
+sub extra_netsnmp {
+  my $self    = shift or confess('Missing SELF parameter');
+  my $sysInfo = shift or confess('Missing SYSINFO parameter');
+
+  my ($make, $extra) = ('netsnmp', undef);
+
+  if ($sysInfo->{sysDescr} =~ /vcx6400d/i) { $make = 'coretec'; }
+
+  return ($make, $extra);
+}
+
+sub extra_ucdsnmp {
+  my $self    = shift or confess('Missing SELF parameter');
+  my $sysInfo = shift or confess('Missing SYSINFO parameter');
+
+  my ($make, $extra);
+
+  if ($sysInfo->{sysDescr} =~ /m0n0wall/i) {
+    $make = 'm0n0wall'; 
+  } else {
+    my $homepage = $self->get_http('/');
+    if ($homepage =~ /\bComtrol Corporation\b/i) {
+      $make = 'comtrol'; $extra = $homepage;
+    }
+  }
+
+  return ($make, $extra);
+}
+
+sub extra_ntcip {
+  my $self    = shift or confess('Missing SELF parameter');
+  my $sysInfo = shift;
+
+  my ($make, $extra);
+
+  debug("Getting NTCIP module table");
+  my $globalModuleTable = $self->snmp_get_table(
+      '1.3.6.1.4.1.1206.4.2.6.1.3',
+      {
+        moduleNumber     => '1.3.6.1.4.1.1206.4.2.6.1.3.1.1',
+        moduleDeviceNode => '1.3.6.1.4.1.1206.4.2.6.1.3.1.2',
+        moduleMake       => '1.3.6.1.4.1.1206.4.2.6.1.3.1.3',
+        moduleModel      => '1.3.6.1.4.1.1206.4.2.6.1.3.1.4',
+        moduleVersion    => '1.3.6.1.4.1.1206.4.2.6.1.3.1.5',
+        moduleType       => '1.3.6.1.4.1.1206.4.2.6.1.3.1.6',
+      });
+  dump('globalModuleTable', $globalModuleTable);
+  $extra = $globalModuleTable;
+
+  $make = 'daktronics'
+    if ($sysInfo && $sysInfo->{sysDescr} =~ /Daktronics/i);
+
+  return ($make, $extra);
+}
+
+my %MAKES = (
+  adtran    => { oid=>'1.3.6.1.4.1.664'                          },
+  apc       => { oid=>'1.3.6.1.4.1.318'                          },
+  axis      => { oid=>'1.3.6.1.4.1.368'                          },
+  cisco     => { oid=>'1.3.6.1.4.1.9'                            },
+  coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
+  digi      => { oid=>'1.3.6.1.4.1.332'                          },
+  digipower => { oid=>'1.3.6.1.4.1.17420'                        },
+  foundry   => { oid=>'1.3.6.1.4.1.1991'                         },
+  juniper   => { oid=>'1.3.6.1.4.1.2636'                         },
+  minuteman => { oid=>'1.3.6.1.4.1.2254'                         },
+  moxa      => { oid=>'1.3.6.1.4.1.8691'                         },
+  netgear   => { oid=>'1.3.6.1.4.1.4526'                         },
+  netsnmp   => { oid=>'1.3.6.1.4.1.8072', extra=>\&extra_netsnmp },
+  ntcip     => { oid=>'1.3.6.1.4.1.1206', extra=>\&extra_ntcip   },
+  optelecom => { oid=>'1.3.6.1.4.1.17534'                        },
+  sierra    => { oid=>'1.3.6.1.4.1.20542'                        },
+  ucdsnmp   => { oid=>'1.3.6.1.4.1.2021', extra=>\&extra_ucdsnmp },
+  vermac    => { oid=>'1.3.6.1.4.1.16892'                        },
+  yealink   => { oid=>'1.3.6.1.4.1.37459'                        },
+);
+
+sub probe_host {
+  my $self = shift or confess('MISSING SELF parameter');
+  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "probe_host() only supported".
+                     "when SNMP is enabled and --hostname is set.")
+    unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
+  
+  debug("Getting SNMP sysInfo");
+  my ($make, $sysInfo, $extra) = (undef, $self->get_sysinfo(), undef);
+  if ($sysInfo) {
+    debug("Got sysInfo response");
+    dump("sysInfo", $sysInfo);
+    foreach (keys %MAKES) {
+      if (Net::SNMP::oid_base_match($MAKES{$_}{oid}, $sysInfo->{sysObjectID})) {
+        my ($make, $extra) = ($_, undef);
+        if (exists $MAKES{$_}{extra}) {
+          my $ex = $MAKES{$_}{extra}; # 
+            ($make, $extra) = $self->$ex($sysInfo);
+        }
+        last;
+      }
+    }
+  } else {
+    warn('No response to sysInfo SNMP request.');
+  }
+
+  ($make, $extra) = $self->extra_ntcip($sysInfo)
+    unless $make;
+
+  if (wantarray) {
+    return ($make, $sysInfo, $extra);
+  } else {
+    return $make;
+  }
+}
+
+=head2 get_sysinfo ( )
+
+Returns the a hashref with OIDs as keys and the results of snmp_get() as
+values.
+
+=cut
+
+sub get_sysinfo {
+  my $self = shift or confess('Missing SELF parameter');
+  my %OIDS = (
+      sysDescr    => '1.3.6.1.2.1.1.1.0',
+      sysObjectID => '1.3.6.1.2.1.1.2.0',
+      sysContact  => '1.3.6.1.2.1.1.4.0',
+      sysName     => '1.3.6.1.2.1.1.5.0',
+      sysLocation => '1.3.6.1.2.1.1.6.0',
+  );
+  my $sysInfo = $self->snmp_get(\%OIDS);
+  if ($sysInfo && keys %$sysInfo && defined $sysInfo->{sysObjectID}) {
+    return $sysInfo;
+  }
+  error("Failed to get sysInfo");
+  return undef;
+}
+
+=head2 get_http ( $URI )
+
+Returns the content of an HTTP request to the given URI on the host.
+
+=cut
+
+sub get_http {
+  my $self = shift or confess('Missing SELF parameter');
+  my $uri  = shift or confess('Missing URI parameter');
+  my $opts = validate(@_, {
+      user => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "user")
+                                        ? $self->opts->user : undef) },
+      pass => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "pass")
+                                        ? $self->opts->pass : undef) },
+      port => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "port")
+                                        ? $self->opts->port : undef)},
+      });
+
+  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "The get_http() method is only ".
+                     "supported when --hostname is set.")
+    unless !$self->{local} && $self->opts->hostname;
+
+  my $url = 'http://'.$self->opts->hostname;
+  $url .= ':'.$opts->{port} if $opts->{port};
+  $url .= $uri;
+  dump('get_url', $url);
+
+  my $ua  = LWP::UserAgent->new;
+  my $req = HTTP::Request->new(GET => $url);
+  
+  $req->authorization_basic($opts->{user}||'', $opts->{pass}||'')
+    if ($opts->{user} || $opts->{pass});
+
+  my $res = $ua->request($req);
+  dump('RESPONSE', $res);
+  return undef if $res->is_error;
+  return $res->content;
+}
+
+=head1 UTILITIES
 
 The following subroutines are "static"; i.e. not methods of the class.
 

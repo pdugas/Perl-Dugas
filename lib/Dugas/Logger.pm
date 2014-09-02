@@ -314,7 +314,7 @@ sub _logger
   my $level  = shift or confess('Missing LEVEL parameter');
   my $format = shift or confess('Missing FORMAT parameter');
   chomp $format; chomp $format;
-  if (@_) { $format = sprintf("$format\n", @_); }
+  if (@_) { $format = sprintf("$format", map {defined $_ ? $_ : 'UNDEF'} @_); }
   $format = '['.$level.'] '.$format."\n";
   print(STDERR $format);
   print({$log} strftime(TIMESTAMP_FORMAT, localtime()), $format)
