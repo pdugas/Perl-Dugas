@@ -14,12 +14,13 @@ use warnings FATAL => 'all';
 use parent 'Nagios::Plugin';
 use Carp;
 use Config::IniFiles;
-use Params::Validate qw(:all);
-use Dugas::Util;
 use Dugas::Logger;
 use Dugas::Nagios;
+use Dugas::Util;
+use Nagios::Plugin::Performance use_die => 1;
 use Net::OpenSSH;
 use Net::SNMP;
+use Params::Validate qw(:all);
 use Pod::Usage;
 
 =head1 NAME
@@ -93,7 +94,7 @@ and instead expect to be checking a "local" service.
 
 If the B<BOOL> value is TRUE, the plugin will expect to get the PERFDATA 
 output and timestamp from a prior run of the plugin.  This adds the 
-B<--prev-perfdata> and B<--prev-checktime> program options.
+B<--prevperfdata> program option.
 
 =item B<snmp =E<gt> BOOL>
 
@@ -236,18 +237,13 @@ END_DEFAULT_INI
     unless $local;
 
   # Add the PREVIOUS arguments
-  #   - Using -P and -T after seeing a handful of existing plugins us it.
+  #   - Using -P after seeing a handful of existing plugins use it.
   if ($prev) {
-    $self->add_arg(spec     => 'prev-perfdata|P=s',
-                   help     => "-P, --prev-perfdata=PERFDATA\n".
+    $self->add_arg(spec     => 'prevperfdata|prev|P=s',
+                   help     => "-P, --prev, --prevperfdata=PERFDATA\n".
                                "   Previous PERFDATA from Nagios, ".
                                "i.e. \$SERVICEPERFDATA\$",
-                   default  => undef);
-    $self->add_arg(spec     => 'prev-checktime|T=s',
-                   help     => "-T, --prev-checktime=TIMESTAMP\n".
-                               "   Previous check time from Nagios, ".
-                               "i.e. \$LASTSERVICECHECK\$",
-                   default  => undef);
+                   default  => '');
   }
 
   # Add the SNMP arguments
@@ -481,17 +477,11 @@ Specify the SNMPv3 privacy password to use.  Only available if the
 "snmp" constructor parameter was given.  Defaults to the "privpassword" value
 in the [snmp] section of the configuration file.
 
-=item B<-P | --prev-perfdata PERFDATA> (PREV only)
+=item B<-P | --prevperfdata PERFDATA> (PREV only)
 
 Provide the PERFDATA output from a previous check.  Only available if the
 "prev" constructor parameter was given.  This is typically used with a Nagios
 command definition that includes C<-P $SERVICEPERFDATA$>.
-
-=item B<-T | --prev-checktime TIMESTAMP> (PREV only)
-
-Provide the timestamp of the previous check.  Only available if the "prev"
-constructor parameter was given.  This is typically used with a Nagios command
-definition that includes C<-T $LASTSERVICECHECK$>.
 
 =back
 
@@ -786,6 +776,36 @@ sub ssh_pipe {
   return $self->ssh()->pipe_in(@_);
 }
 
+=head1 PREVIOUS DATA
+
+The following methods provide access to performance data from the previous run
+of the plugin.  These are only avialble if the C<prev> parameter was passed
+to the constructor.  They rely on the C<--prevperfdata> parameter being
+provided on the command line.
+
+=head2 prev ( )
+
+Returns a reference to a hash that contains the parsed previous performance 
+data.  There will be a key matching each entry in the perfdata and the values
+will be B<Nagios::Plugin::Performance> objects.
+
+=cut
+
+sub prev {
+  my $self = shift or confess('MISSING SELF parameter');
+
+  unless ($self->{prev}) {
+    error("Plugin not configured for PREV!");
+    return undef;
+  }
+
+  $self->{prevData}
+    = Dugas::Nagios::Plugin::parse_perfdata($self->opts->prevperfdata)
+    unless exists $self->{prevData};
+
+  return $self->{prevData};
+}
+
 =head1 OTHER METHODS
 
 =head2 $make = probe_host ( )
@@ -993,11 +1013,11 @@ B<Nagios::Plugin::Perforamnce::parse_perfstring()> into a hash.
 =cut
 
 sub parse_perfdata {
-  my $perfdata = shift or confess("Missing PERFDATA parameter");
-  my %perf;
+  my $perfdata = shift || '';
+  my $ret = {};
   foreach (Nagios::Plugin::Performance->parse_perfstring($perfdata))
-    { $perf{$_->label} = $_; }
-  return \%perf;
+    { $ret->{$_->label} = $_; }
+  return $ret;
 }
 
 =head2 sortKeys( HASH )
