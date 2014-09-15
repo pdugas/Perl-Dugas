@@ -35,7 +35,6 @@ Version 0.01
 
 our $VERSION = '0.01';
 
-
 =head1 SYNOPSIS
 
     use Dugas::Nagios::Plugin;
@@ -341,7 +340,7 @@ sub getopts {
   pod2usage(-exitval => 0, -verbose => 2)
     if ($self->opts->manual);
 
-  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "Missing --hostname option")
+  $self->nagios_die("Missing --hostname option")
     if (!$self->{local} && !defined $self->opts->hostname);
 
   # Load CONFIG.
@@ -623,7 +622,7 @@ Returns UNDEF if there is an error.
 
 sub snmp_get {
   my $self = shift or confess("Missing SELF parameter");
-  confess("Missing OID parameters") unless @_;
+  croak("Missing OID parameters") unless @_;
 
   my %names; # name/OID map
   if (ref $_[0] eq ref {}) { %names = %{$_[0]}; shift; }
