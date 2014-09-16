@@ -883,11 +883,13 @@ my %MAKES = (
   adtran    => { oid=>'1.3.6.1.4.1.664'                          },
   apc       => { oid=>'1.3.6.1.4.1.318'                          },
   axis      => { oid=>'1.3.6.1.4.1.368'                          },
+  brother   => { oid=>'1.3.6.1.4.1.2435'                         },
   cisco     => { oid=>'1.3.6.1.4.1.9'                            },
   coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
   digi      => { oid=>'1.3.6.1.4.1.332'                          },
   digipower => { oid=>'1.3.6.1.4.1.17420'                        },
   foundry   => { oid=>'1.3.6.1.4.1.1991'                         },
+  freebsd   => { oid=>'1.3.6.1.4.1.12325'                        },
   juniper   => { oid=>'1.3.6.1.4.1.2636'                         },
   minuteman => { oid=>'1.3.6.1.4.1.2254'                         },
   moxa      => { oid=>'1.3.6.1.4.1.8691'                         },
@@ -907,14 +909,13 @@ sub probe_host {
                      "when SNMP is enabled and --hostname is set.")
     unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
   
-  debug("Getting SNMP sysInfo");
   my ($make, $sysInfo, $extra) = (undef, $self->get_sysinfo(), undef);
   if ($sysInfo) {
-    debug("Got sysInfo response");
     dump("sysInfo", $sysInfo);
     foreach (keys %MAKES) {
       if (Net::SNMP::oid_base_match($MAKES{$_}{oid}, $sysInfo->{sysObjectID})) {
-        my ($make, $extra) = ($_, undef);
+        debug("sysObjectID matches $_");
+        ($make, $extra) = ($_, undef);
         if (exists $MAKES{$_}{extra}) {
           my $ex = $MAKES{$_}{extra}; # 
             ($make, $extra) = $self->$ex($sysInfo);
