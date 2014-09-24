@@ -164,10 +164,14 @@ sub get {
       unless (uc($root_type) eq uc($type));
     if (exists $xml->{$root}{$root_type}) {
       #debug("Found $root_type under $root root so returning that.");
-      return @{$xml->{$root}{$root_type}};
+      if (ref($xml->{$root}{$root_type}) eq 'ARRAY') {
+        return @{$xml->{$root}{$root_type}};
+      } else {
+        return [ $xml->{$root}{$root_type} ];
+      }
+    } else {
+      return [];
     }
-    error("Didn't find expected $root_type under $root root.");
-    return undef;
   }
 
   # Querying object structures returns a different XML structure.  We get a
@@ -194,6 +198,7 @@ sub get {
         return @{$xml->{$root}{$root_type.'Set'}{$_}};
       }
     }
+    return [];
   }
 
   error("Didn't understand the XML response.");
@@ -202,7 +207,8 @@ sub get {
 
 =head2 get1 ( CLASS, TYPE [, KEY => VALUE ...] )
 
-Query Maximo for a single object.  Returns a hash reference or C<undef> if not match was found.  The parameters are the same as for the get() method.
+Query Maximo for a single object.  Returns a hash reference or C<undef> if no
+match was found.  The parameters are the same as for the get() method.
 
 =cut
 
@@ -298,12 +304,12 @@ sub post {
   my $res = $self->{lwp}->request($req);
   dump('RESPONSE', $res);
   unless ($res->is_success) {
-    error("post($class, $type) failed; ".$res->status_line);
+    error("post($uri) failed; ".$res->status_line);
     return undef;
   }
 
   my $xml = XMLin($res->content(), KeepRoot => 1);
-  dump('XML', $xml);
+  #dump('XML', $xml);
 
   if (uc($class) eq 'MBO') {
     return $xml->{uc($type)} if (exists $xml->{uc($type)});
@@ -313,7 +319,8 @@ sub post {
 
   if (uc($class) eq 'OS') {
     my $root = (keys %$xml)[0];
-    if ($root ne 'Create'.uc($type).'Response') {
+    if ($root ne 'Create'.uc($type).'Response' &&
+        $root ne 'Sync'.uc($type).'Response') {
       error("Unexpected root ($root) in response to ".uc($type)." POST.");
       return undef;
     }
@@ -323,7 +330,7 @@ sub post {
     }
     foreach (keys %{$xml->{$root}{uc($type).'Set'}}) {
       if (ref $xml->{$root}{uc($type).'Set'}{$_} eq 'HASH') {
-        debug("Returning the $_ HASH node.");
+        #debug("Returning the $_ HASH node.");
         return $xml->{$root}{uc($type).'Set'}{$_};
       }
     }

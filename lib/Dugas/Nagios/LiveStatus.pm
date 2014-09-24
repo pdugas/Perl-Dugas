@@ -56,7 +56,7 @@ instance.
 
 =cut
 
-use constant DEFAULT_SOCKET => '/var/spool/nagios/live';
+use constant DEFAULT_SOCKET => '/var/spool/nagios/cmd/live';
 use constant DEFAULT_PORT   => 6557;
 
 =head1 CONSTRUCTOR

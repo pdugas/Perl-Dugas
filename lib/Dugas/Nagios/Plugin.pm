@@ -123,11 +123,6 @@ sub new {
     unless $opts{version};
   $opts{extra} = ""
     unless $opts{extra};
-#  $opts{extra} .= <<ENDEXTRA;
-#
-#Please submit defect reports or feature requests to the project at
-#http://github.com/pdugas/Perl-Dugas/.
-#ENDEXTRA
   $opts{usage} = "Usage: %s [-v] [-C config] [-L log] [-H hostname]\n"
     unless $opts{usage};
 
@@ -395,7 +390,7 @@ sub getopts {
   if (my $log = $self->opts->log || $self->conf('logger', 'logfile')) {
     $log =~ s/%s/$FindBin::Script/;
     $log =~ s/%d/getpid()/e;
-    debug("Opening $log for logging.");
+    #debug("Opening $log for logging.");
     Dugas::Logger::open($log);
   }
 }
@@ -550,8 +545,9 @@ sub snmp {
       port      => $self->opts->snmpport,
       version   => $self->{proto},
       translate => [ timeticks => 0 ],
-      timeout   => $self->opts->timeout,
-      retries   => 0,
+      #timeout   => $self->opts->timeout,
+      timeout   => 5,
+      retries   => 1,
     );
 
     $opts{community} = $self->opts->community
@@ -631,8 +627,8 @@ sub snmp_get {
   my @oids = values %names;
   my $vals = $self->snmp->get_request(varbindlist => [@oids]);
   if ($self->snmp->error_status() == 2) {
-    warn($self->snmp->error().
-         '; OID='.$oids[$self->snmp->error_index()-1]);
+    #debug($self->snmp->error().
+    #      '; OID='.$oids[$self->snmp->error_index()-1]);
   } elsif ($self->snmp->error_status()) {
     error($self->snmp->error());
   }
@@ -859,22 +855,37 @@ sub extra_ntcip {
 
   my ($make, $extra);
 
-  debug("Getting NTCIP module table");
-  my $globalModuleTable = $self->snmp_get_table(
-      '1.3.6.1.4.1.1206.4.2.6.1.3',
-      {
-        moduleNumber     => '1.3.6.1.4.1.1206.4.2.6.1.3.1.1',
-        moduleDeviceNode => '1.3.6.1.4.1.1206.4.2.6.1.3.1.2',
-        moduleMake       => '1.3.6.1.4.1.1206.4.2.6.1.3.1.3',
-        moduleModel      => '1.3.6.1.4.1.1206.4.2.6.1.3.1.4',
-        moduleVersion    => '1.3.6.1.4.1.1206.4.2.6.1.3.1.5',
-        moduleType       => '1.3.6.1.4.1.1206.4.2.6.1.3.1.6',
-      });
-  dump('globalModuleTable', $globalModuleTable);
-  $extra = $globalModuleTable;
+  if ($sysInfo && $sysInfo->{sysDescr} =~ /Daktronics/i) {
+    $make = 'daktronics';
+    return ($make, $extra);
+  }
 
-  $make = 'daktronics'
-    if ($sysInfo && $sysInfo->{sysDescr} =~ /Daktronics/i);
+  if ($sysInfo && $sysInfo->{sysDescr} =~ /Vaisala/i) {
+    $make = 'vaisala';
+  }
+
+  my $ret = $self->snmp_get({
+      globalMaxModules => '.1.3.6.1.4.1.1206.4.2.6.1.2.0'
+      });
+  dump('ret', $ret);
+  if ($ret && $ret->{globalMaxModules}) {
+    $extra = [];
+    foreach (1..$ret->{globalMaxModules}) {
+      my $mod = $self->snmp_get({
+          moduleNumber     => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.1.$_",
+          moduleDeviceNode => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.2.$_",
+          moduleMake       => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.3.$_",
+          moduleModel      => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.4.$_",
+          moduleVersion    => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.5.$_",
+          moduleType       => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.6.$_" });
+      next unless $mod && keys %$mod;
+      push @$extra, $mod;
+      
+      $make = 'ledstar' if (!$make && $mod->{moduleMake} =~ /\bLEDSTAR\b/i);
+      $make = 'vermac'  if (!$make && $mod->{moduleMake} =~ /\bVER-?MAC\b/i);
+      $make = 'vaisala' if (!$make && $mod->{moduleMake} =~ /\bVAISALA\b/i);
+    }
+  }
 
   return ($make, $extra);
 }
@@ -883,6 +894,7 @@ my %MAKES = (
   adtran    => { oid=>'1.3.6.1.4.1.664'                          },
   apc       => { oid=>'1.3.6.1.4.1.318'                          },
   axis      => { oid=>'1.3.6.1.4.1.368'                          },
+  aztec     => { oid=>'1.3.6.1.4.1.4651'                         },
   brother   => { oid=>'1.3.6.1.4.1.2435'                         },
   cisco     => { oid=>'1.3.6.1.4.1.9'                            },
   coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
@@ -897,6 +909,7 @@ my %MAKES = (
   netsnmp   => { oid=>'1.3.6.1.4.1.8072', extra=>\&extra_netsnmp },
   ntcip     => { oid=>'1.3.6.1.4.1.1206', extra=>\&extra_ntcip   },
   optelecom => { oid=>'1.3.6.1.4.1.17534'                        },
+  pronet    => { oid=>'1.3.6.1.4.1.1723'                         },
   sierra    => { oid=>'1.3.6.1.4.1.20542'                        },
   ucdsnmp   => { oid=>'1.3.6.1.4.1.2021', extra=>\&extra_ucdsnmp },
   vermac    => { oid=>'1.3.6.1.4.1.16892'                        },
@@ -924,11 +937,11 @@ sub probe_host {
       }
     }
   } else {
-    warn('No response to sysInfo SNMP request.');
+    debug("Failed to get sysInfo.");
   }
 
-  ($make, $extra) = $self->extra_ntcip($sysInfo)
-    unless $make;
+  # This is a little hack to detect some NTCIP-only gear.
+  ($make, $extra) = $self->extra_ntcip($sysInfo) unless $make;
 
   if (wantarray) {
     return ($make, $sysInfo, $extra);
@@ -949,15 +962,15 @@ sub get_sysinfo {
   my %OIDS = (
       sysDescr    => '1.3.6.1.2.1.1.1.0',
       sysObjectID => '1.3.6.1.2.1.1.2.0',
-      sysContact  => '1.3.6.1.2.1.1.4.0',
-      sysName     => '1.3.6.1.2.1.1.5.0',
-      sysLocation => '1.3.6.1.2.1.1.6.0',
+      #sysContact  => '1.3.6.1.2.1.1.4.0',
+      #sysName     => '1.3.6.1.2.1.1.5.0',
+      #sysLocation => '1.3.6.1.2.1.1.6.0',
   );
   my $sysInfo = $self->snmp_get(\%OIDS);
   if ($sysInfo && keys %$sysInfo && defined $sysInfo->{sysObjectID}) {
     return $sysInfo;
   }
-  error("Failed to get sysInfo");
+  #debug("Failed to get sysInfo");
   return undef;
 }
 

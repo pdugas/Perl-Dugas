@@ -12,6 +12,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use Cwd;
+use Carp;
 use File::Spec;
 use Dugas::Logger;
 use Params::Validate qw(:all);
@@ -135,13 +136,15 @@ Returns the string name for a given host I<STATE>.
 =cut
 
 sub host_state_name {
-  my $state = shift or confess("Missing STATE parameter");
+  my $state = shift;
+  croak("Missing STATE parameter")
+      unless defined $state;
 
   if ($state == 0)  { return 'UP'; }
   if ($state == 1)  { return 'DOWN'; }
   if ($state == 2)  { return 'UNREACHABLE'; }
 
-  confess("Invalid STATE paremeter value; $state");
+  croak("Invalid STATE paremeter value; $state");
 }
 
 =head2 service_state_name ( STATE )
@@ -152,13 +155,32 @@ Returns the string name for a given service I<STATE>.
 
 sub service_state_name {
   my $state = shift;
+  croak("Missing STATE parameter")
+      unless defined $state;
 
   if ($state == 0)  { return 'OK'; }
   if ($state == 1)  { return 'WARNING'; }
   if ($state == 2)  { return 'CRITICAL'; }
   if ($state == 3)  { return 'UNKNOWN'; }
 
-  confess("Invalid STATE parameter value; $state");
+  croak("Invalid STATE parameter value; $state");
+}
+
+=head2 state_type_name ( TYPE )
+
+Returns the string name for a given state B<TYPE>.
+
+=cut
+
+sub state_type_name {
+  my $type = shift;
+  croak("Missing TYPE parameter")
+      unless defined $type;
+
+  if ($type == 0)  { return 'SOFT'; }
+  if ($type == 1)  { return 'HARD'; }
+
+  croak("Invalid TYPE parameter value; $type");
 }
 
 =head1 SEE ALSO
