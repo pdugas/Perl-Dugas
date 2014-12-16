@@ -75,10 +75,10 @@ sub new
                 callbacks => { defined => sub { defined shift() }, },
                 required  => 1 },
       user => { type      => SCALAR,
-                callbacks => { defined   => sub { shift() }, },
+                callbacks => { defined => sub { shift() }, },
                 required  => 1 },
       pass => { type      => SCALAR,
-                callbacks => { defined  => sub { shift() }, },
+                callbacks => { defined => sub { defined shift() }, },
                 required  => 1 },
   });
 

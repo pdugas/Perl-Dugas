@@ -186,8 +186,8 @@ sub new
     { spec    => 'version|V' },
     { spec    => 'verbose|v+', default => 0 },
     { spec    => 'quiet|q' },
-    { spec    => 'config|c=s' },
-    { spec    => 'log|l=s', default => $obj->conf('logger', 'logfile') },
+    { spec    => 'config|C=s' },
+    { spec    => 'log|L=s', default => $obj->conf('logger', 'logfile') },
   ];
 
   $obj->{optvals} = {};
