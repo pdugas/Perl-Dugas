@@ -10,13 +10,17 @@ build installation packages instead.
 
 The following Perl modules are included:
 
-* **Dugas** - Catch-all for anything that didn't fit elsewhere. (Should move to Dugas::Util.)
 * **Dugas::App** - Simple program options framework.
-* **Dugas::LiveStatus** - Wrapper for the [LiveStatus](https://mathias-kettner.de/checkmk_livestatus.html) API.
+* **Dugas::LiveStatus** - Wrapper for the [LiveStatus] [LiveStatus URL] API.
 * **Dugas::Logger** - Simple diagnostic logging framework.
-* **Dugas::Maximo** - Wrapper for the [Maximo REST](http://www-01.ibm.com/support/knowledgecenter/SSLKT6_7.5.0.5/com.ibm.mif.doc/gp_intfrmwk/rest_api/c_rest_overview.html?lang=en) API.
+* **Dugas::Maximo** - Wrapper for the [Maximo REST] [Maximo REST URL] API.
 * **Dugas::Nagios** - Nagios deployment paths and such.  (Should move to Dugas::Nagios::Util.)
-* **Dugas::Nagios::Plugin** - Custom version of [Nagios::Plugin](http://search.cpan.org/dist/Nagios-Plugin/lib/Nagios/Plugin.pm).
+* **Dugas::Nagios::Plugin** - Custom version of [Nagios::Plugin] [Nagios::Plugin URL]
+* **Dugas::Util** - Catch-all for anything that didn't fit elsewhere.
+
+[LiveStatus URL]: https://mathias-kettner.de/checkmk_livestatus.html
+[Maximo REST URL]: http://www-01.ibm.com/support/knowledgecenter/SSLKT6_7.5.0.5/com.ibm.mif.doc/gp_intfrmwk/rest_api/c_rest_overview.html?lang=en
+[Nagios::Plugin URL]: http://search.cpan.org/dist/Nagios-Plugin/lib/Nagios/Plugin.pm
 
 CONTENTS
 --------
