@@ -233,6 +233,7 @@ use constant CMD_NUM_SUBCHANNES             => 216;
 =head1 CONSTRUCTOR
 
 =head2 Dugas::CoreTecAPI::new( OPTIONS )
+
 =head2 new Dugas::CoreTecAPI( OPTIONS )
 
 Returns a new B<Dugas::CoreTecAPI> object.  Use the following options to
@@ -240,13 +241,9 @@ configure it.
 
 =over
 
-=item host => HOSTNAME|IPADDRESS
+=item timeout => SECS
 
-Sepecify the hostname of the device to connect to.  Required.
-
-=item port => INTEGER
-
-Specify the TCP port number to connect to.  Defaults to
+Specify the timeout (in seconds) for connect and read operations.  Defaults to
 B<Dugas::CoreTecAPI::DEFAULT_PORT>.
 
 =back
@@ -259,7 +256,7 @@ sub new
 
   my $obj = validate( @_, {
     timeout => { type    => SCALAR,
-                 default => $Dugas::CoreTecAPI::DEFAULT_TIMEOUT },
+                 default => DEFAULT_TIMEOUT },
   });
 
   bless $obj, $class;
@@ -270,6 +267,7 @@ sub new
 =head1 METHODS
 
 =head2 open HOST
+
 =head2 open HOST, PORT
 
 Open a connection to the CoreTec device using the hostname or IP address in
@@ -405,6 +403,7 @@ sub video_uptime {
 }
 
 =head2 name
+
 =head2 name NAME
 
 Get/set the device name.
@@ -425,6 +424,7 @@ sub name {
 }
 
 =head2 set COMMAND
+
 =head2 set COMMAND, DATA
 
 Send the I<COMMAND>, with I<DATA> if specified.  Returns true on success and

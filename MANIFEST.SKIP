@@ -3,6 +3,8 @@
 \bCVS\b
 ,v$
 \B\.svn\b
+\B\.git\b
+^.gitignore\b
 
 # Makemaker generated files and dirs.
 ^MANIFEST\.

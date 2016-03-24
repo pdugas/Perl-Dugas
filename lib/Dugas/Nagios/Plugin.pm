@@ -804,9 +804,10 @@ sub prev {
 =head1 OTHER METHODS
 
 =head2 $make = probe_host ( )
+
 =head2 ($make, $sysinfo, $extra) = probe_host ( )
 
-The B<probe_host() method tries to identify the make (i.e. manufacturer or
+The B<probe_host()> method tries to identify the make (i.e. manufacturer or
 vendor name) of a host.  In scalar context, a string is returned.  In array
 context, a hashref containing the SNMP sysInfo and an extra result that may
 be defined and contain additional results from the probe.
@@ -820,6 +821,12 @@ constructor and the C<local> parameter was not.  This routine relies on SNMP.
 # when the sysObjectID value is generic.  The idea is to look at additional
 # data in the given SYSINFO objects or to probe the device further.
 
+=head2 ($make, $extra) = extra_netsnmp( $sysinfo )
+
+Refine the MAKE result of probe_host() when the sysObjectID value is "netsnmp".
+
+=cut
+
 sub extra_netsnmp {
   my $self    = shift or confess('Missing SELF parameter');
   my $sysInfo = shift or confess('Missing SYSINFO parameter');
@@ -830,6 +837,12 @@ sub extra_netsnmp {
 
   return ($make, $extra);
 }
+
+=head2 ($make, $extra) = extra_ucdsnmp( $sysinfo )
+
+Refine the MAKE result of probe_host() when the sysObjectID value is "ucdsnmp".
+
+=cut
 
 sub extra_ucdsnmp {
   my $self    = shift or confess('Missing SELF parameter');
@@ -848,6 +861,12 @@ sub extra_ucdsnmp {
 
   return ($make, $extra);
 }
+
+=head2 ($make, $extra) = extra_ntcip( $sysinfo )
+
+Refine the MAKE result of probe_host() when the sysObjectID value is NTCIP.
+
+=cut
 
 sub extra_ntcip {
   my $self    = shift or confess('Missing SELF parameter');
