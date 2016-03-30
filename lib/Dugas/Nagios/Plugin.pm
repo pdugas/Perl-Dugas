@@ -17,6 +17,7 @@ use Config::IniFiles;
 use Dugas::Logger;
 use Dugas::Nagios;
 use Dugas::Util;
+use FindBin;
 use Nagios::Plugin::Performance use_die => 1;
 use Net::OpenSSH;
 use Net::SNMP;
@@ -155,9 +156,11 @@ ENDUSAGE
     delete $opts{snmp};
     if ($snmp) {
       $opts{usage} .= <<ENDUSAGE;
-       [-c snmp_community] [-p snmp_port] [--protocol version|-1|-2|-3] 
-       [-l seclevel] [-u secname] [-a authproto] [-A authpasswd] 
-       [-x privproto] [-x privpasswd] [--user username] [--pass passwd] 
+       [-c snmp_community] [-p snmp_port] 
+       [--protocol version|-1|-2|-3] 
+       [-l seclevel] [-u secname] 
+       [-a authproto] [-A authpasswd] 
+       [-x privproto] [-x privpasswd]
 ENDUSAGE
     }
   }
@@ -169,7 +172,7 @@ ENDUSAGE
     delete $opts{ssh};
     if ($ssh) {
       $opts{usage} .= <<ENDUSAGE;
-       [-u username] [-p password] [-k keypath]
+       [-u username] [-p password] [-k keypath] 
 ENDUSAGE
     }
   }
@@ -200,6 +203,7 @@ ENDUSAGE
   privproto=DES
   privpassword=
 [ssh]
+  port=22
   username=
   password=
   keypath=
@@ -299,16 +303,21 @@ END_DEFAULT_INI
 
   # Add the SSH arguments
   if ($ssh) {
-    $self->add_arg(spec     => 'username|u=s',
+    $self->add_arg(spec     => 'sshuser|username|u=s',
                    help     => "-u, --username=STRING\n".
                                "   SSH username (default: ".
-                               $self->conf('ssh','username').")",
-                   default  => $self->conf('ssh','username'));
-    $self->add_arg(spec     => 'password|p=s',
+                               ($self->conf('ssh','username')||$ENV{USER}).")",
+                   default  => $self->conf('ssh','username')||$ENV{USER});
+    $self->add_arg(spec     => 'sshport|port|P=s',
+                   help     => "-P, --port=INT\n".
+                               "   SSH port (default: ".
+                               $self->conf('ssh','port').")",
+                   default  => $self->conf('ssh','port'));
+    $self->add_arg(spec     => 'sshpass|password|p=s',
                    help     => "-p, --password=STRING\n".
                                "   SSH password",
                    default  => $self->conf('ssh','password'));
-    $self->add_arg(spec     => 'keypath|k=s',
+    $self->add_arg(spec     => 'sshkey|keypath|k=s',
                    help     => "-k, --keypath=FILENAME\n".
                                "   SSH private key file (default: ".
                                $self->conf('ssh','keypath').")",
@@ -518,6 +527,43 @@ sub conf {
   return $self->{ini}->val($section, $key, $default);
 }
 
+=head1 BASECLASS METHODS
+
+The following B<Nagios::Plugin> methods are being enhanced.
+
+=head2 nagios_exit ( CODE, [MESSAGE, [OUTPUT] ) )
+
+We add the optional B<OUTPUT> parameter used to send the given string to the
+output as the LONGSERVICEOUTPUT text.
+
+=cut
+
+sub nagios_exit {
+  my $self = shift or confess('Missing SELF parameter');
+  my $code = shift ;
+  my $msg = shift;
+  my $long  = shift;
+
+  return $self->SUPER::nagios_exit($code, $long ? $msg."\n".$long : $msg);
+}
+
+=head2 check_messages ( [OPTIONS] )
+
+We add C<join => ', '> and C<join_all => ' and '> as defaults.
+
+=cut
+
+sub check_messages {
+  my $self = shift or confess('Missing SELF parameter');
+  my $opts = shift;
+  $opts = {} unless $opts;
+
+  $opts->{join} = ', ' unless exists $opts->{join};
+  $opts->{join_all} = ' and ' unless exists $opts->{join_all};
+
+  return $self->SUPER::check_messages( %{$opts} );
+}
+
 =head1 SNMP METHODS
 
 The following methods are enabled if the C<snmp> parameter was passed to the
@@ -722,17 +768,26 @@ sub ssh {
 
   unless ($self->{openssh}) {
     my %opts = ();
-    $opts{user} = $self->opts->username if $self->opts->username;
-    $opts{password} = $self->opts->password if $self->opts->password;
-    $opts{key_path} = $self->opts->keypath if $self->opts->keypath;
+    $opts{port} = $self->opts->sshport if $self->opts->sshport;
+    $opts{user} = $self->opts->sshuser if $self->opts->sshuser;
+    $opts{password} = $self->opts->sshpass if $self->opts->sshpass;
+    $opts{key_path} = $self->opts->sshkey if $self->opts->sshkey;
+    $opts{batch_mode} = 1; # don't prompt for passwords, just fail
     my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
     if ($ssh->error) {
+      $self->{openssh_error} = $ssh->error;
       error("SSH to ".$self->opts->hostname." failed; ".$ssh->error);
       return undef;
     }
     $self->{openssh} = $ssh;
+    undef $self->{openssh_error};
   }
   return $self->{openssh};
+}
+
+sub ssh_error {
+  my $self = shift or confess('MISSING SELF parameter');
+  return $self->{openssh_error};
 }
 
 =head2 ssh_system ( )
