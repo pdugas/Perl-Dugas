@@ -58,8 +58,16 @@ then
 
     make install
 
-You should be able to use `cpan2rpm` or `dh-make-perl` to make installation
-packages suitable for your system.
+PACKAGING
+---------
+Building an RPM package is a matter of the following on a RedHat/CentOS machine.
+
+  # yum install -y rpm-build redhat-rpm-config rpmdevtools yum-utils
+  # rpmdev-setuptree
+  # wget https://raw.githubusercontent.com/pdugas/Perl-Dugas/master/perl-Dugas.spec
+  # spectool -g -R perl-Dugas.spec
+  # yum-builddep -y perl-Dugas.spec
+  # rpmbuild -ba perl-Dugas.spec
 
 TODO
 ----

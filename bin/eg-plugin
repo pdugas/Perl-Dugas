@@ -13,9 +13,9 @@ use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 use Dugas::Logger;
-use Dugas::Nagios::Plugin;
+use Dugas::Monitoring::Plugin;
 
-my $plugin = new Dugas::Nagios::Plugin(snmp=>1, prev=>1);
+my $plugin = new Dugas::Monitoring::Plugin(snmp=>1, prev=>1);
 $plugin->add_arg( spec => 'foo|f', 
                   help => "-f, --foo\n   Enable foo" );
 $plugin->getopts;
@@ -25,7 +25,7 @@ $plugin->nagios_exit(OK, "All good");
 
 =head1 NAME
 
-eg-plugin - Example program for Dugas::Nagios::Plugin.
+eg-plugin - Example program for Dugas::Monitoring::Plugin.
 
 =head1 SYNOPSIS
 
@@ -35,7 +35,7 @@ eg-plugin - Example program for Dugas::Nagios::Plugin.
 =head1 OPTIONS
 
 B<eg-plugin> accepts the the standard program options provided by
-B<Dugas::Nagios::Plugin> plus the following additions.
+B<Dugas::Monitoring::Plugin> plus the following additions.
 
 =over
 
@@ -47,7 +47,7 @@ Enabled the foo feature.  (Just an example boolean option.)
 
 =head1 SEE ALSO
 
-B<Dugas::Nagios::Plugin> - Nagios Plugin Framework
+B<Dugas::Monitoring::Plugin> - Monitoring Plugin Framework
 
 =head1 BUGS
 
@@ -59,7 +59,7 @@ Paul Dugas L<mailto:paul@dugas.cc>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2013-2014 by Paul Dugas.
+Copyright (C) 2013-2016 by Paul Dugas.
 
 Perl-Dugas is free software and documentation; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as published by the

@@ -1,12 +1,12 @@
 # =============================================================================
 # Dugas-Perl - The Dugas Family of Perl Modules
 # =============================================================================
-# @file     lib/Dugas/Nagios.pm
+# @file     lib/Dugas/Monitoring.pm
 # @brief    Perl module for our Nagios utilities.
 # @author   Paul Dugas <paul@dugas.cc>
 # =============================================================================
 
-package Dugas::Nagios;
+package Dugas::Monitoring;
 
 use 5.006;
 use strict;
@@ -19,7 +19,7 @@ use Params::Validate qw(:all);
 
 =head1 NAME
 
-Dugas::Nagios - Nagios setup information.
+Dugas::Monitoring - Nagios setup information.
 
 =head1 VERSION
 
@@ -31,14 +31,14 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use Dugas::Nagios;
+    use Dugas::Monitoring;
 
-    print Dugas::Nagios::BASEDIR, "\n";
+    print Dugas::Monitoring::BASEDIR, "\n";
     ...
 
 =head1 DESCRIPTION
 
-The B<Dugas::Nagios> module provides a handful of routines we use for our
+The B<Dugas::Monitoring> module provides a handful of routines we use for our
 Nagios installations - mostly, paths and other static stuff.
 
 =cut
@@ -75,12 +75,12 @@ sub import
 
 Returns the full path for the top-level directory for the Nagios setup.  We
 expect this folder to contain nagios.conf, bin/, etc/, and lib/.  By default,
-this will be two levels up from the Nagios.pm Perl module itself since we
+this will be two levels up from the Monitoring.pm Perl module itself since we
 typically deploy things that way.
 
 The B<BASEDIR> value can be overridden when use'ing the module like so:
 
-  use Dugas::Nagios( BASEDIR => '/opt/nagios' );
+  use Dugas::Monitoring( BASEDIR => '/opt/nagios' );
 
 =cut
 
@@ -185,7 +185,7 @@ sub state_type_name {
 
 =head1 SEE ALSO
 
-B<Dugas::Nagios::Plugin>
+B<Dugas::Monitoring::Plugin>
 
 =head1 AUTHOR
 
@@ -200,11 +200,11 @@ L<http://github.com/pdugas/Perl-Dugas>.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Dugas::Nagios
+    perldoc Dugas::Monitoring
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2013-2014 Paul Dugas
+Copyright (C) 2013-2016 Paul Dugas
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

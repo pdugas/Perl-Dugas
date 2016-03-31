@@ -1,24 +1,24 @@
 # =============================================================================
 # Perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
-# @file     lib/Dugas/Nagios/Plugin.pm
-# @brief    Custom version of the standard Nagios::Plugin with our additions.
+# @file     lib/Dugas/Monitoring/Plugin.pm
+# @brief    Custom version of the standard Monitoring::Plugin with our additions.
 # @author   Paul Dugas <paul@dugas.cc>
 # =============================================================================
 
-package Dugas::Nagios::Plugin;
+package Dugas::Monitoring::Plugin;
 
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use parent 'Nagios::Plugin';
+use parent 'Monitoring::Plugin';
 use Carp;
 use Config::IniFiles;
 use Dugas::Logger;
-use Dugas::Nagios;
+use Dugas::Monitoring;
 use Dugas::Util;
 use FindBin;
-use Nagios::Plugin::Performance use_die => 1;
+use Monitoring::Plugin::Performance use_die => 1;
 use Net::OpenSSH;
 use Net::SNMP;
 use Params::Validate qw(:all);
@@ -26,7 +26,7 @@ use Pod::Usage;
 
 =head1 NAME
 
-Dugas::Nagios::Plugin - Framework for Nagios Plugins
+Dugas::Monitoring::Plugin - Framework for Nagios Plugins
 
 =head1 VERSION
 
@@ -38,9 +38,9 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use Dugas::Nagios::Plugin;
+    use Dugas::Monitoring::Plugin;
 
-    my $plugin = new Dugas::Nagios::Plugin();
+    my $plugin = new Dugas::Monitoring::Plugin();
     $plugin->add_arg(
         spec => 'foo|f',
         help => "-f, --foo\n"."   Enable foo",
@@ -53,7 +53,7 @@ our $VERSION = '0.01';
 
 =head1 EXPORT
 
-The constants exported by B<Nagios::Plugin> (i.e. OK, WARNING, CRITICAL, etc.)
+The constants exported by B<Monitoring::Plugin> (i.e. OK, WARNING, CRITICAL, etc.)
 are similarly exported by default here.  
 
 =cut
@@ -62,19 +62,19 @@ use Exporter;
 our @EXPORT = qw(OK WARNING CRITICAL UNKNOWN DEPENDENT);
 our @EXPORT_OK = qw();
 
-use constant OK         => Nagios::Plugin::OK;
-use constant WARNING    => Nagios::Plugin::WARNING;
-use constant CRITICAL   => Nagios::Plugin::CRITICAL;
-use constant UNKNOWN    => Nagios::Plugin::UNKNOWN;
-use constant DEPENDENT  => Nagios::Plugin::DEPENDENT;
+use constant OK         => Monitoring::Plugin::OK;
+use constant WARNING    => Monitoring::Plugin::WARNING;
+use constant CRITICAL   => Monitoring::Plugin::CRITICAL;
+use constant UNKNOWN    => Monitoring::Plugin::UNKNOWN;
+use constant DEPENDENT  => Monitoring::Plugin::DEPENDENT;
 
 =head1 CONSTRUCTOR
 
 =head2 B<new( OPTIONS )>
 
-Returns a new B<Dugas::Nagios::Plugin> object.  B<OPTIONS> are
+Returns a new B<Dugas::Monitoring::Plugin> object.  B<OPTIONS> are
 C<key=E<gt>value> pairs that would normally be used to construct a
-B<Nagios::Plugin> object.  Additional options are listed below.
+B<Monitoring::Plugin> object.  Additional options are listed below.
 
 =over
 
@@ -182,7 +182,7 @@ ENDUSAGE
   my $config = $opts{config} || $FindBin::Bin.'/../etc/nagios.conf';
   delete $opts{config};
 
-  # Construct Nagios::Plugin baseclass
+  # Construct Monitoring::Plugin baseclass
   my $self = $class->SUPER::new(%opts);
 
   # Save these
@@ -339,7 +339,7 @@ END_DEFAULT_INI
 
 =head2 getopts ( )
 
-We override the B<Nagios::Plugin>'s getopts() routine to add some additional
+We override the B<Monitoring::Plugin>'s getopts() routine to add some additional
 logic to loading and validating program options.
 
 =cut
@@ -413,7 +413,7 @@ sub getopts {
 
 =head1 PROGRAM OPTIONS
 
-The B<Nagios::Plugin> baseclass provides the standard B<--verbose>,
+The B<Monitoring::Plugin> baseclass provides the standard B<--verbose>,
 B<--version>, B<--help>, etc. command-line options.  This class adds the
 following:
 
@@ -536,7 +536,7 @@ sub conf {
 
 =head1 BASECLASS METHODS
 
-The following B<Nagios::Plugin> methods are being enhanced.
+The following B<Monitoring::Plugin> methods are being enhanced.
 
 =head2 nagios_exit ( CODE, [MESSAGE, [OUTPUT] ) )
 
@@ -649,7 +649,7 @@ sub snmp {
     } # if SNMPv3
 
     my ($snmp, $error) = Net::SNMP->session(%opts);
-    $self->nagios_exit(Nagios::Plugin::UNKNOWN, 
+    $self->nagios_exit(Monitoring::Plugin::UNKNOWN, 
                        "SNMP error; $error") unless (defined $snmp);
     $self->{snmpSession} = $snmp;
   }
@@ -714,7 +714,7 @@ sub snmp_get_table {
   my $names = shift;
 
   my $ret = $self->snmp->get_table(baseoid => $table);
-  $self->nagios_exit(Nagios::Plugin::UNKNOWN, $self->snmp->error())
+  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, $self->snmp->error())
     if ($self->snmp->error_status());
 
   if ($ret && $names && (ref $names eq ref {})) {
@@ -851,7 +851,7 @@ provided on the command line.
 
 Returns a reference to a hash that contains the parsed previous performance 
 data.  There will be a key matching each entry in the perfdata and the values
-will be B<Nagios::Plugin::Performance> objects.
+will be B<Monitoring::Plugin::Performance> objects.
 
 =cut
 
@@ -864,7 +864,7 @@ sub prev {
   }
 
   $self->{prevData}
-    = Dugas::Nagios::Plugin::parse_perfdata($self->opts->prevperfdata)
+    = Dugas::Monitoring::Plugin::parse_perfdata($self->opts->prevperfdata)
     unless exists $self->{prevData};
 
   return $self->{prevData};
@@ -1006,7 +1006,7 @@ my %MAKES = (
 
 sub probe_host {
   my $self = shift or confess('MISSING SELF parameter');
-  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "probe_host() only supported".
+  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
                      "when SNMP is enabled and --hostname is set.")
     unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
   
@@ -1080,7 +1080,7 @@ sub get_http {
                                         ? $self->opts->port : undef)},
       });
 
-  $self->nagios_exit(Nagios::Plugin::UNKNOWN, "The get_http() method is only ".
+  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, "The get_http() method is only ".
                      "supported when --hostname is set.")
     unless !$self->{local} && $self->opts->hostname;
 
@@ -1109,14 +1109,14 @@ The following subroutines are "static"; i.e. not methods of the class.
 
 Takes a I<PERFDATA> string output by a Nagios plugin and returns the data
 broken out into a hash.  This is just converting the results of 
-B<Nagios::Plugin::Perforamnce::parse_perfstring()> into a hash.
+B<Monitoring::Plugin::Perforamnce::parse_perfstring()> into a hash.
 
 =cut
 
 sub parse_perfdata {
   my $perfdata = shift || '';
   my $ret = {};
-  foreach (Nagios::Plugin::Performance->parse_perfstring($perfdata))
+  foreach (Monitoring::Plugin::Performance->parse_perfstring($perfdata))
     { $ret->{$_->label} = $_; }
   return $ret;
 }
@@ -1139,7 +1139,7 @@ sub sortKeys {
 
 =head1 SEE ALSO
 
-B<Dugas::Nagios>, B<Dugas::Logger>, B<Nagios::Plugin>, B<Net::SNMP>
+B<Dugas::Monitoring>, B<Dugas::Logger>, B<Monitoring::Plugin>, B<Net::SNMP>
 
 =head1 AUTHOR
 
@@ -1158,7 +1158,7 @@ You can find documentation for this module with the perldoc command.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2013-2014 Paul Dugas
+Copyright (C) 2013-2016 Paul Dugas
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
@@ -1181,7 +1181,7 @@ Paul Dugas may be contacted at the addresses below:
 
 =cut
 
-1; # End of Dugas::Nagios::Plugin
+1; # End of Dugas::Monitoring::Plugin
 
 # -----------------------------------------------------------------------------
 # vim: set et ts=2 sw=2 :

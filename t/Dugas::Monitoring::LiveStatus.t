@@ -2,7 +2,7 @@
 # =============================================================================
 # Perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
-# @file     t/Dugas::Nagios::LiveStatus.t
+# @file     t/Dugas::Monitoring::LiveStatus.t
 # @brief    Unit-Tests
 # @author   Paul Dugas <paul@dugas.cc>
 # =============================================================================
@@ -24,16 +24,16 @@ sub test_livestatus {
   ok($svc, 'get_service(LOCALHOST, LOAD)') or diag explain $svc;
 }
 
-use_ok( 'Dugas::Nagios::LiveStatus' ) || print "Bail out!\n";
+use_ok( 'Dugas::Monitoring::LiveStatus' ) || print "Bail out!\n";
 
 SKIP: {
-  my $live; eval { $live = new Dugas::Nagios::LiveStatus(); };
+  my $live; eval { $live = new Dugas::Monitoring::LiveStatus(); };
   skip 'No LiveStatus local socket', 2 unless $live;
   test_livestatus $live;
 };
 
 SKIP: {
-  my $live; eval { $live = new Dugas::Nagios::LiveStatus(host => 'nagios'); };
+  my $live; eval { $live = new Dugas::Monitoring::LiveStatus(host => 'nagios'); };
   skip 'No LiveStatus host', 2 unless $live;
   test_livestatus $live;
 };

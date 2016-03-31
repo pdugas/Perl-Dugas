@@ -62,8 +62,8 @@ TODO: {
   module_boilerplate_ok('lib/Dugas/App.pm');
   module_boilerplate_ok('lib/Dugas/Logger.pm');
   module_boilerplate_ok('lib/Dugas/Maximo.pm');
-  module_boilerplate_ok('lib/Dugas/Nagios.pm');
-  module_boilerplate_ok('lib/Dugas/Nagios/LiveStatus.pm');
-  module_boilerplate_ok('lib/Dugas/Nagios/Plugin.pm');
+  module_boilerplate_ok('lib/Dugas/Monitoring.pm');
+  module_boilerplate_ok('lib/Dugas/Monitoring/LiveStatus.pm');
+  module_boilerplate_ok('lib/Dugas/Monitoring/Plugin.pm');
 }
 

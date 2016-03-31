@@ -19,9 +19,9 @@ BEGIN {
     use_ok( 'Dugas::App' ) || print "Bail out!\n";
     use_ok( 'Dugas::Logger' ) || print "Bail out!\n";
     use_ok( 'Dugas::Maximo' ) || print "Bail out!\n";
-    use_ok( 'Dugas::Nagios' ) || print "Bail out!\n";
-    use_ok( 'Dugas::Nagios::LiveStatus' ) || print "Bail out!\n";
-    use_ok( 'Dugas::Nagios::Plugin' ) || print "Bail out!\n";
+    use_ok( 'Dugas::Monitoring' ) || print "Bail out!\n";
+    use_ok( 'Dugas::Monitoring::LiveStatus' ) || print "Bail out!\n";
+    use_ok( 'Dugas::Monitoring::Plugin' ) || print "Bail out!\n";
 }
 
 diag( "Testing Dugas $Dugas::VERSION, Perl $], $^X" );

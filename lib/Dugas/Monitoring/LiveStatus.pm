@@ -1,12 +1,12 @@
 # =============================================================================
 # Perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
-# @file     lib/Dugas/Nagios/LiveStatus.pm
+# @file     lib/Dugas/Monitoring/LiveStatus.pm
 # @brief    Wrapper class for the check_mk LiveStatus API
 # @author   Paul Dugas <paul@dugas.cc>
 # =============================================================================
 
-package Dugas::Nagios::LiveStatus;
+package Dugas::Monitoring::LiveStatus;
 
 use 5.006;
 use strict;
@@ -19,7 +19,7 @@ use IO::Socket::UNIX;
 
 =head1 NAME
 
-Dugas::Nagios::LiveStatus - Wrapper class for the LiveStatus API
+Dugas::Monitoring::LiveStatus - Wrapper class for the LiveStatus API
 
 =head1 VERSION
 
@@ -32,9 +32,9 @@ our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
-    use Dugas::Nagios::LiveStatus;
+    use Dugas::Monitoring::LiveStatus;
 
-    my $live = new Dugas::Nagios::LiveStatus(
+    my $live = new Dugas::Monitoring::LiveStatus(
         socket => '/var/spool/nagios/live'
     );
     my @hosts = $live->get("GET hosts");

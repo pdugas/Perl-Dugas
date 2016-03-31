@@ -2,7 +2,7 @@
 # =============================================================================
 # Perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
-# @file     t/Dugas::Nagios::Plugin.t
+# @file     t/Dugas::Monitoring.t
 # @brief    Unit-Tests
 # @author   Paul Dugas <paul@dugas.cc>
 # =============================================================================
@@ -15,5 +15,5 @@ use Test::More;
 plan tests => 1;
 
 BEGIN {
-    use_ok( 'Dugas::Nagios::Plugin' ) || print "Bail out!\n";
+    use_ok( 'Dugas::Monitoring' ) || print "Bail out!\n";
 }
