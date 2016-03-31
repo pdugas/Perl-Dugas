@@ -172,7 +172,8 @@ ENDUSAGE
     delete $opts{ssh};
     if ($ssh) {
       $opts{usage} .= <<ENDUSAGE;
-       [-u username] [-p password] [-k keypath] 
+       [-P port] [-u username] [-p password] 
+       [-k keypath] [-K keyphrase]
 ENDUSAGE
     }
   }
@@ -207,6 +208,7 @@ ENDUSAGE
   username=
   password=
   keypath=
+  keyphrase=
 END_DEFAULT_INI
   $self->{ini} = Config::IniFiles->new( -file => \$DEFAULT_INI );
   if ($config && -r $config) {
@@ -317,11 +319,16 @@ END_DEFAULT_INI
                    help     => "-p, --password=STRING\n".
                                "   SSH password",
                    default  => $self->conf('ssh','password'));
-    $self->add_arg(spec     => 'sshkey|keypath|k=s',
+    $self->add_arg(spec     => 'sshkeypath|keypath|k=s',
                    help     => "-k, --keypath=FILENAME\n".
                                "   SSH private key file (default: ".
                                $self->conf('ssh','keypath').")",
                    default  => $self->conf('ssh','keypath'));
+    $self->add_arg(spec     => 'sshkeyphrase|keyphrase|K=s',
+                   help     => "-K, --keyphrase=PASSPHRASE\n".
+                               "   Passphrase to unlock the key (default: ".
+                               $self->conf('ssh','keyphrase').")",
+                   default  => $self->conf('ssh','keyphrase'));
   }
 
   # Done
@@ -544,21 +551,22 @@ sub nagios_exit {
   my $msg = shift;
   my $long  = shift;
 
+  # XXX if $msg is empty, we end up with an extra dash in the output :(
+
   return $self->SUPER::nagios_exit($code, $long ? $msg."\n".$long : $msg);
 }
 
 =head2 check_messages ( [OPTIONS] )
 
-We add C<join => ', '> and C<join_all => ' and '> as defaults.
+We add join=>', ' and join_all=>' and ' as default OPTIONs.
 
 =cut
 
 sub check_messages {
   my $self = shift or confess('Missing SELF parameter');
-  my $opts = shift;
-  $opts = {} unless $opts;
+  my $opts = {@_};
 
-  $opts->{join} = ', ' unless exists $opts->{join};
+  $opts->{join}     = ', '    unless exists $opts->{join};
   $opts->{join_all} = ' and ' unless exists $opts->{join_all};
 
   return $self->SUPER::check_messages( %{$opts} );
@@ -768,10 +776,16 @@ sub ssh {
 
   unless ($self->{openssh}) {
     my %opts = ();
-    $opts{port} = $self->opts->sshport if $self->opts->sshport;
-    $opts{user} = $self->opts->sshuser if $self->opts->sshuser;
-    $opts{password} = $self->opts->sshpass if $self->opts->sshpass;
-    $opts{key_path} = $self->opts->sshkey if $self->opts->sshkey;
+    $opts{port}       = $self->opts->sshport
+      if length $self->opts->sshport;
+    $opts{user}       = $self->opts->sshuser
+      if length $self->opts->sshuser;
+    $opts{password}   = $self->opts->sshpass
+      if length $self->opts->sshpass;
+    $opts{key_path}   = $self->opts->sshkeypath
+      if length $self->opts->sshkeypath;
+    $opts{passphrase} = $self->opts->sshkeyphrase
+      if length $self->opts->sshkeyphrase;
     $opts{batch_mode} = 1; # don't prompt for passwords, just fail
     my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
     if ($ssh->error) {
