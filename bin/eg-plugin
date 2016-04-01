@@ -18,8 +18,8 @@ use Dugas::Monitoring::Plugin;
 
 # SETUP
 my $plugin = new Dugas::Monitoring::Plugin(snmp=>1, prev=>1);
-$plugin->add_arg( spec => 'foo|f', 
-                  help => "-f, --foo\n   Enable foo" );
+$plugin->add_arg(spec => 'foo|f', 
+                 help => "-f, --foo\n   Enable foo");
 $plugin->getopts;
 
 # CHECK

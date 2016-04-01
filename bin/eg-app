@@ -9,10 +9,7 @@
 
 use strict;
 
-# This is how we find the modules when they're not installed where all the
-# stock modules are kept.  We expect this program to be in the bin/
-# subdirectory and for the parent directory to have a lib/ subdirectory where
-# the Perl-Dugas modules are kept.
+# These 2 lines aren't necessary when the Dugas modules are installed.
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
@@ -23,7 +20,7 @@ use Dugas::Logger;
 use Dugas::App;
 
 # Construct the App object and add the --error option.
-my $app = new Dugas::App( conf => 'eg.conf', 
+my $app = new Dugas::App( conf => 'dugas.conf', 
                           opts => [ {spec=>'error|e'} ] );
 
 # Doing something.
@@ -35,7 +32,7 @@ warn("Something's amiss...");
 # Check for a fatal error.
 # Run the program with the --error command-line option for this to be TRUE.
 if ($app->conf('eg', 'error', 'error')) {
-    fatal("Argh!");
+  fatal("Argh!");
 }
 
 # All good.
@@ -79,7 +76,7 @@ Paul Dugas L<mailto:paul@dugas.cc>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2013-2014 by Paul Dugas.
+Copyright (C) 2013-2016 by Paul Dugas.
 
 Perl-Dugas is free software and documentation; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as published by the

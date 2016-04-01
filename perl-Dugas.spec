@@ -45,7 +45,7 @@ make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm {} 2>/dev/null \;
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
 %{_fixperms} $RPM_BUILD_ROOT/*
-%{__install} -m 644 "etc/eg.conf" "%{buildroot}%{_sysconfdir}/dugas.conf"
+%{__install} -Dp -m 644 "etc/eg.conf" "%{buildroot}%{_sysconfdir}/dugas.conf"
 %{__install} -d -m 755 %{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/
 %{__install} -m 755 "bin/eg-plugin" "%{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/eg-plugin"
 %{__install} -m 755 "bin/eg-app" "%{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/eg-app"
@@ -57,8 +57,6 @@ make test
 %doc README.md LICENSE
 %{perl_vendorlib}/*
 %{_mandir}/man3/*
-%dir %{_datadir}/doc/%{name}-%{version}/eg
-%{_datadir}/doc/%{name}-%{version}/eg/*
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
 
 %changelog
