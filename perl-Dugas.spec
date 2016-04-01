@@ -5,7 +5,7 @@ Summary:	Dugas Perl Modules
 Group:		Develpment/Libraries
 URL:		https://github.com/pdugas/Perl-Dugas
 License:	GPL
-Source0:	https://github.com/pdugas/Perl-Dugas/archive/${name}-%{version}.tar.gz
+Source0:	https://github.com/pdugas/Perl-Dugas/archive/%{name}-%{version}.tar.gz
 
 BuildArch:	noarch
 
