@@ -72,6 +72,7 @@ Building an RPM package is a matter of the following on a RedHat/CentOS machine.
 TODO
 ----
 * Unit tests provide minimal coverage.  Need to expand them.
+* Add `/etc/dugas.conf` runtime config file to RPM.
 
 SUPPORT AND DOCUMENTATION
 -------------------------
