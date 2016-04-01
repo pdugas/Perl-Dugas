@@ -30,7 +30,8 @@ Requires:	perl(XML::Simple)
 Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $version))
 
 %description
-The "Dugas" modules provide ...
+The Dugas Perl modules are a set of utilities developed by Paul Dugas for use
+on various projects.  See https://github.com/pdugas/Perl-Dugas for details.
 
 %prep
 %setup -q -n Perl-Dugas-%{version}
@@ -43,8 +44,11 @@ make %{?_smp_mflags}
 make pure_install PERL_INSTALL_ROOT=$RPM_BUILD_ROOT
 find $RPM_BUILD_ROOT -type f -name .packlist -exec rm {} 2>/dev/null \;
 find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
-
 %{_fixperms} $RPM_BUILD_ROOT/*
+%{__install} -m 644 "etc/eg.conf" "%{buildroot}%{_sysconfdir}/dugas.conf"
+%{__install} -d -m 755 %{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/
+%{__install} -m 755 "bin/eg-plugin" "%{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/eg-plugin"
+%{__install} -m 755 "bin/eg-app" "%{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/eg-app"
 
 %check
 make test
@@ -53,6 +57,9 @@ make test
 %doc README.md LICENSE
 %{perl_vendorlib}/*
 %{_mandir}/man3/*
+%dir %{_datadir}/doc/%{name}-%{version}/eg
+%{_datadir}/doc/%{name}-%{version}/eg/*
+%attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
 
 %changelog
 * Mon Mar 28 2016 Paul Dugas <paul@dugas.cc>

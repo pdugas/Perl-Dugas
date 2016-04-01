@@ -72,11 +72,10 @@ Building an RPM package is a matter of the following on a RedHat/CentOS machine.
 TODO
 ----
 * Unit tests provide minimal coverage.  Need to expand them.
-* Add `/etc/dugas.conf` runtime config file to RPM.
 * Clean out `Dugas.pm` now that we typically install via RPM.
 
-SUPPORT AND DOCUMENTATION
--------------------------
+SUPPORT & DOCUMENTATION
+-----------------------
 The project page at http://github.com/pdugas/Perl-Dugas/ should be used to
 ask questions or provide feedback.  After installing, you can find
 documentation for this module with the perldoc command.
@@ -89,9 +88,9 @@ to one of the `[module].pm` files.
 
     perldoc ./lib/Dugas/Dugas.pm
 
-LICENSE AND COPYRIGHT
----------------------
-Copyright (C) 2013-2014 Paul Dugas
+LICENSE & COPYRIGHT
+-------------------
+Copyright (C) 2013-2016 Paul Dugas
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
