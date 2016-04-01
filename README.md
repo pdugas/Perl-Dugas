@@ -73,6 +73,7 @@ TODO
 ----
 * Unit tests provide minimal coverage.  Need to expand them.
 * Add `/etc/dugas.conf` runtime config file to RPM.
+* Clean out `Dugas.pm` now that we typically install via RPM.
 
 SUPPORT AND DOCUMENTATION
 -------------------------
