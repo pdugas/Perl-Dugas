@@ -1,5 +1,5 @@
 Name:		perl-Dugas
-Version:	master
+Version:	0.1
 Release:	1%{?dist}
 Summary:	Dugas Perl Modules
 Group:		Develpment/Libraries
