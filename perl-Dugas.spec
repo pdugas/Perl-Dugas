@@ -16,6 +16,9 @@ BuildRequires:	perl(LWP)
 BuildRequires:	perl(Monitoring::Plugin)
 BuildRequires:	perl(Net::OpenSSH)
 BuildRequires:	perl(Net::SNMP)
+BuildRequires:	perl(Test::CheckManifest)
+BuildRequires:	perl(Test::Pod)
+BuildRequires:	perl(Test::Pod::Coverage)
 BuildRequires:	perl(Test::Simple)
 BuildRequires:	perl(XML::Simple)
 
@@ -34,7 +37,7 @@ The Dugas Perl modules are a set of utilities developed by Paul Dugas for use
 on various projects.  See https://github.com/pdugas/Perl-Dugas for details.
 
 %prep
-%setup -q -n Perl-Dugas-%{version}
+%setup -q -n Perl-Dugas-%{name}-%{version}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor NO_PACKLIST=1
@@ -51,7 +54,7 @@ find $RPM_BUILD_ROOT -depth -type d -exec rmdir {} 2>/dev/null \;
 %{__install} -m 755 "bin/eg-app" "%{buildroot}%{_datadir}/doc/%{name}-%{version}/eg/eg-app"
 
 %check
-make test
+make RELEASE_TESTING=1 test
 
 %files
 %doc README.md LICENSE

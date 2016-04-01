@@ -22,3 +22,7 @@
 
 # others
 ^etc\/maximo\.conf$
+debugsources.list
+debugfiles.list
+debuglinks.list
+elfbins.list

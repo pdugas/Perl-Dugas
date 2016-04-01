@@ -30,11 +30,11 @@ Dugas::Monitoring::Plugin - Framework for Nagios Plugins
 
 =head1 VERSION
 
-Version 0.01
+Version 0.1
 
 =cut
 
-our $VERSION = '0.01';
+our $VERSION = '0.1';
 
 =head1 SYNOPSIS
 
@@ -1169,6 +1169,12 @@ sub ssh {
   }
   return $self->{openssh};
 }
+
+=head2 ssh_error ( )
+
+Returns the C<Net::OpenSSH::error> value from the last call to C<ssh()>.
+
+=cut
 
 sub ssh_error {
   my $self = shift or confess('MISSING SELF parameter');

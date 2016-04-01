@@ -4,6 +4,7 @@ MANIFEST			This list of files
 MANIFEST.SKIP			This list of files to skip
 Makefile.PL
 README.md
+perl-Dugas.spec
 bin/README.md
 bin/eg-app
 bin/eg-plugin
