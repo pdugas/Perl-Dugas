@@ -60,5 +60,7 @@ make test
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
 
 %changelog
+* Fri Apr  1 2016 Paul Dugas <paul@dugas.cc>
+- Initial 0.1 release.
 * Mon Mar 28 2016 Paul Dugas <paul@dugas.cc>
 - Initial Specfile.
