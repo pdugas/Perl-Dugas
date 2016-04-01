@@ -62,10 +62,10 @@ sub import
 
   # Warn if BASEDIR doesn't seem right.
   if (-d $basedir) {
-    note("Nagios BASEDIR ($basedir) may not be correct.")
+    notice("Nagios BASEDIR ($basedir) may not be correct.")
       unless (-d BINDIR() && -d ETCDIR() && -d LIBDIR());
   } else {
-    note("Nagios BASEDIR ($basedir) doesn't exist.")
+    notice("Nagios BASEDIR ($basedir) doesn't exist.")
   }
 } # import()
 

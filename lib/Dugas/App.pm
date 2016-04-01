@@ -85,10 +85,10 @@ sub import
 
   # Warn if BASEDIR doesn't seem right.
   if (-d $basedir) {
-    note("Dugas::App BASEDIR ($basedir) may not be correct.")
+    notice("Dugas::App BASEDIR ($basedir) may not be correct.")
       unless (-d ETCDIR());
   } else {
-    note("Dugas::App BASEDIR ($basedir) doesn't exist.")
+    notice("Dugas::App BASEDIR ($basedir) doesn't exist.")
   }
 }
 

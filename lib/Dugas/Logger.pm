@@ -45,7 +45,7 @@ them.
 
 require Exporter;
 our @ISA         = qw(Exporter);
-our @EXPORT      = qw(fatal error warn note info debug trace dump hexdump);
+our @EXPORT      = qw(fatal error warn notice info debug trace dump hexdump);
 our @EXPORT_OK   = ();
 
 =head1 LOGGING LEVELS
@@ -73,7 +73,7 @@ requested.
 Warnings are logged to report potential trouble performing the action the
 user requests.  Retries should be logged as warnings.  
 
-=item NOTE
+=item NOTICE
 
 Notices are logged to report normal but significant conditions like detailed
 progress, use of default values, etc.
@@ -115,7 +115,7 @@ I<LOG_ERROR>, I<LOG_DATA>, etc.
 
 =item LOG_WARN
 
-=item LOG_NOTE
+=item LOG_NOTICE
 
 =item LOG_INFO
 
@@ -129,14 +129,14 @@ I<LOG_ERROR>, I<LOG_DATA>, etc.
 
 =cut
 
-use constant LOG_FATAL => 0; # critical conditions
-use constant LOG_ERROR => 1; # error conditions
-use constant LOG_WARN  => 2; # warning conditions
-use constant LOG_NOTE  => 3; # normal but significant condition
-use constant LOG_INFO  => 4; # informational / progress
-use constant LOG_DEBUG => 5; # debug-level messages
-use constant LOG_DATA  => 6; # data dumps
-use constant LOG_TRACE => 7; # program flow messages
+use constant LOG_FATAL  => 0; # critical conditions
+use constant LOG_ERROR  => 1; # error conditions
+use constant LOG_WARN   => 2; # warning conditions
+use constant LOG_NOTICE => 3; # normal but significant condition
+use constant LOG_INFO   => 4; # informational / progress
+use constant LOG_DEBUG  => 5; # debug-level messages
+use constant LOG_DATA   => 6; # data dumps
+use constant LOG_TRACE  => 7; # program flow messages
 
 use constant TIMESTAMP_FORMAT => '%Y-%m-%d %H:%M:%S'; # sortable!
 
@@ -219,15 +219,15 @@ action was taken to work around a fault of some kind.
 
 sub warn { _logger('WARN', @_) if $lvl >= LOG_WARN; }
 
-=head2 note ( FORMAT [, PARAMS] )
+=head2 notice ( FORMAT [, PARAMS] )
 
-Logs a NOTE message and returns.  These should be used to report when some
+Logs a NOTICE message and returns.  These should be used to report when some
 minor information an administration may want to look into.  These do not 
 indicate any inability to perform the desired action.
 
 =cut
 
-sub note { _logger('NOTE', @_) if $lvl >= LOG_NOTE; }
+sub notice { _logger('NOTICE', @_) if $lvl >= LOG_NOTICE; }
 
 =head2 info ( FORMAT [, PARAMS] )
 
