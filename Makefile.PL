@@ -8,7 +8,7 @@ WriteMakefile(
     AUTHOR           => q{Paul Dugas <paul@dugas.cc>},
     VERSION_FROM     => 'lib/Dugas.pm',
     ABSTRACT_FROM    => 'lib/Dugas.pm',
-    LICENSE          => 'Artistic_2_0',
+    LICENSE          => 'gpl_2',
     PL_FILES         => {},
     MIN_PERL_VERSION => 5.006,
     CONFIGURE_REQUIRES => {
