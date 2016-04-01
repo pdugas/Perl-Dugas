@@ -50,7 +50,7 @@ our $VERSION = '0.1';
 
     $plugin->info("Doing stuff");
 
-    $plugin->nagios_exit(OK, "All good");
+    $plugin->plugin_exit(OK, "All good");
 
 =head1 EXPORT
 
@@ -545,22 +545,22 @@ sub conf {
 
 The following B<Monitoring::Plugin> methods are being enhanced.
 
-=head2 nagios_exit ( CODE, [MESSAGE, [OUTPUT] ) )
+=head2 plugin_exit ( CODE, [MESSAGE, [OUTPUT] ) )
 
 We add the optional B<OUTPUT> parameter used to send the given string to the
 output as the LONGSERVICEOUTPUT text.
 
 =cut
 
-sub nagios_exit {
+sub plugin_exit {
   my $self = shift or confess('Missing SELF parameter');
-  my $code = shift ;
-  my $msg = shift;
-  my $long  = shift;
+  my $code = shift;
+  my $msg  = shift;
+  my $long = shift;
 
-  # XXX if $msg is empty, we end up with an extra dash in the output :(
+  $msg .= "\n".$long if $long;
 
-  return $self->SUPER::nagios_exit($code, $long ? $msg."\n".$long : $msg);
+  return $self->SUPER::plugin_exit($code, $msg);
 }
 
 =head2 check_messages ( [OPTIONS] )
@@ -656,7 +656,7 @@ sub snmp {
     } # if SNMPv3
 
     my ($snmp, $error) = Net::SNMP->session(%opts);
-    $self->nagios_exit(Monitoring::Plugin::UNKNOWN, 
+    $self->plugin_exit(Monitoring::Plugin::UNKNOWN, 
                        "SNMP error; $error") unless (defined $snmp);
     $self->{snmpSession} = $snmp;
   }
@@ -696,7 +696,8 @@ sub snmp_get {
 
   my $ret = {};
   if ($vals) {
-    foreach (keys %names) {
+    foreach (sort { Net::SNMP::oid_lex_cmp($names{$b}, $names{$a}) }
+             keys %names) {
       my $oid = $names{$_};
       $ret->{$_} = $ret->{$oid} = $vals->{$oid};
     }
@@ -721,14 +722,14 @@ sub snmp_get_table {
   my $names = shift;
 
   my $ret = $self->snmp->get_table(baseoid => $table);
-  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, $self->snmp->error())
+  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, $self->snmp->error())
     if ($self->snmp->error_status());
 
   if ($ret && $names && (ref $names eq ref {})) {
     foreach my $oid (keys %$ret) {
       next unless $oid =~ /^(.*)\.(\d+)$/; # XXX should we warn?
-      foreach (keys %$names) {
-        #if ($oid =~ /^$names->{$_}\.?(.*)$/) {
+      foreach (sort { Net::SNMP::oid_lex_cmp($names->{$b}, $names->{$a}) }
+               keys %$names) {
         if ($oid =~ /^$names->{$_}\.(.*)$/) {
           $ret->{"$_.$1"} = $ret->{$oid};
           last;
@@ -1383,7 +1384,7 @@ my %MAKES = (
 
 sub probe_host {
   my $self = shift or confess('MISSING SELF parameter');
-  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
+  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
                      "when SNMP is enabled and --hostname is set.")
     unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
   
@@ -1457,7 +1458,8 @@ sub get_http {
                                         ? $self->opts->port : undef)},
       });
 
-  $self->nagios_exit(Monitoring::Plugin::UNKNOWN, "The get_http() method is only ".
+  $self->plugin_exit(Monitoring::Plugin::UNKNOWN,
+                     "The get_http() method is only ".
                      "supported when --hostname is set.")
     unless !$self->{local} && $self->opts->hostname;
 
