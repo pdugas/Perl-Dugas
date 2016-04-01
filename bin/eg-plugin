@@ -9,19 +9,24 @@
 
 use strict;
 
+# These 2 lines are not necessary when the module is installed.
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
 use Dugas::Logger;
 use Dugas::Monitoring::Plugin;
 
+# SETUP
 my $plugin = new Dugas::Monitoring::Plugin(snmp=>1, prev=>1);
 $plugin->add_arg( spec => 'foo|f', 
                   help => "-f, --foo\n   Enable foo" );
 $plugin->getopts;
 
-$plugin->nagios_exit(OK, "All good");
-0;
+# CHECK
+# ...
+
+# DONE
+$plugin->plugin_exit(OK, "All good");
 
 =head1 NAME
 
@@ -30,7 +35,7 @@ eg-plugin - Example program for Dugas::Monitoring::Plugin.
 =head1 SYNOPSIS
 
   $ eg-plugin --help
-  $ eg-app -vvv
+  $ eg-plugin -H host [--foo]
 
 =head1 OPTIONS
 

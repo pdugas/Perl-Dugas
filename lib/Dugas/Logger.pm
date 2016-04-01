@@ -70,7 +70,7 @@ requested.
 
 =item WARN
 
-Warnings are logged to report potentialy trouble performing the action the
+Warnings are logged to report potential trouble performing the action the
 user requests.  Retries should be logged as warnings.  
 
 =item NOTE
@@ -91,7 +91,7 @@ others troubeshooting the software.
 =item DATA
 
 The DATA level is used by the B<dump()> and B<hexdump()> subroutines when
-logging data.
+logging detailed data.
 
 =item TRACE
 
@@ -138,7 +138,7 @@ use constant LOG_DEBUG => 5; # debug-level messages
 use constant LOG_DATA  => 6; # data dumps
 use constant LOG_TRACE => 7; # program flow messages
 
-use constant TIMESTAMP_FORMAT => '%Y-%m-%d %H:%M:%S';
+use constant TIMESTAMP_FORMAT => '%Y-%m-%d %H:%M:%S'; # sortable!
 
 # Globals
 my $lvl = $ENV{DUGAS_LOGGER_VERBOSE} || LOG_WARN;  # Current threshold

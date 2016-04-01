@@ -15,10 +15,12 @@ use Test::More;
 plan tests => 3;
 
 BEGIN {
-    use_ok( 'Dugas::Logger' ) || print "Bail out!\n";
+    use_ok('Dugas::Logger') || print "Bail out!\n";
 
-    is(Dugas::Logger::level(), Dugas::Logger::LOG_WARN(), 'default level is WARN');
+    is(Dugas::Logger::level(), Dugas::Logger::LOG_WARN(),
+       'default level is WARN');
 
     Dugas::Logger::level(Dugas::Logger::LOG_DEBUG());
-    is(Dugas::Logger::level(), Dugas::Logger::LOG_DEBUG(), 'default level now DEBUG');
+    is(Dugas::Logger::level(), Dugas::Logger::LOG_DEBUG(),
+       'default level now DEBUG');
 }
