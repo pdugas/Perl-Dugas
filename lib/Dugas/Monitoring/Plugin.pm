@@ -1,5 +1,5 @@
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     lib/Dugas/Monitoring/Plugin.pm
 # @brief    Custom version of the standard Monitoring::Plugin with our additions.
@@ -1525,7 +1525,7 @@ Paul Dugas, <paul@dugas.cc>
 =head1 BUGS
 
 Please report any bugs or feature requests using the project page at
-L<http://github.com/pdugas/Perl-Dugas>.
+L<http://github.com/pdugas/perl-Dugas>.
 
 =head1 SUPPORT
 

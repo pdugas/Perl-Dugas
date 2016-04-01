@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     bin/eg-mx-sr
 # @brief    Example use of the Maximo API to create an SR.
@@ -58,7 +58,7 @@ if ($app->opt('asset')) {
 
 my $LONGDESCRIPTION = <<ENDLONGDESCRIPTION;
 <p>This is a <i>test</i> SR created by the <u>eg-mx-sr</u> program in the
-<i>Perl-Dugas</i> module.  The formatted text here is demonstrating some of the
+<i>perl-Dugas</i> module.  The formatted text here is demonstrating some of the
 options we have for including details in generated SRs.</p>
 
 <p>We want to be able to make lists:
@@ -171,7 +171,7 @@ used with B<--location>.
 
 =head1 BUGS
 
-See the project page at L<http://github.com/pdugas/Perl-Dugas>.
+See the project page at L<http://github.com/pdugas/perl-Dugas>.
 
 =head1 AUTHOR
 
@@ -179,9 +179,9 @@ Paul Dugas L<mailto:paul@dugas.cc>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright (C) 2013-2014 by Paul Dugas.
+Copyright (C) 2013-2016 by Paul Dugas.
 
-Perl-Dugas is free software and documentation; you can redistribute it and/or
+perl-Dugas is free software and documentation; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 2 of the License, or (at your option)
 any later version.

@@ -1,6 +1,6 @@
 #!/usr/bin/perl -w
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     bin/eg-app
 # @brief    Example utility program
@@ -68,7 +68,7 @@ B<Dugas::App> - Program option framework.
 
 =head1 BUGS
 
-See the project page at L<http://github.com/pdugas/Perl-Dugas>.
+See the project page at L<http://github.com/pdugas/perl-Dugas>.
 
 =head1 AUTHOR
 
@@ -78,7 +78,7 @@ Paul Dugas L<mailto:paul@dugas.cc>
 
 Copyright (C) 2013-2016 by Paul Dugas.
 
-Perl-Dugas is free software and documentation; you can redistribute it and/or
+perl-Dugas is free software and documentation; you can redistribute it and/or
 modify it under the terms of the GNU General Public License as published by the
 Free Software Foundation; either version 2 of the License, or (at your option)
 any later version.

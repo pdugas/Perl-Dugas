@@ -1,4 +1,4 @@
-Perl-Dugas Unit Tests
+perl-Dugas Unit Tests
 =====================
 
 This directory contains unit tests for the Perk-Dugas modules.  Run them with

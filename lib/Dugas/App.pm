@@ -1,5 +1,5 @@
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     lib/Dugas/App.pm
 # @brief    A simple application class handling program options and logging.
@@ -376,7 +376,7 @@ Paul Dugas, <paul at dugas.cc>
 =head1 BUGS
 
 Please report any bugs or feature requests using the project page at
-L<http://github.com/pdugas/Perl-Dugas>.
+L<http://github.com/pdugas/perl-Dugas>.
 
 =head1 SUPPORT
 
@@ -390,7 +390,7 @@ You can find documentation for this module with the perldoc command.
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright (C) 2013-2014 Paul Dugas
+Copyright (C) 2013-2016 Paul Dugas
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software

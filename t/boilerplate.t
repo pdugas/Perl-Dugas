@@ -1,6 +1,6 @@
 #!perl -T
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     t/boilerplate.t
 # @brief    Unit-Tests

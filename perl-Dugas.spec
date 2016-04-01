@@ -3,9 +3,9 @@ Version:	0.1
 Release:	1%{?dist}
 Summary:	Dugas Perl Modules
 Group:		Develpment/Libraries
-URL:		https://github.com/pdugas/Perl-Dugas
+URL:		https://github.com/pdugas/perl-Dugas
 License:	GPL
-Source0:	https://github.com/pdugas/Perl-Dugas/archive/%{name}-%{version}.tar.gz
+Source0:	https://github.com/pdugas/perl-Dugas/archive/%{name}-%{version}.tar.gz
 
 BuildArch:	noarch
 
@@ -34,10 +34,10 @@ Requires:       perl(:MODULE_COMPAT_%(eval "`%{__perl} -V:version`"; echo $versi
 
 %description
 The Dugas Perl modules are a set of utilities developed by Paul Dugas for use
-on various projects.  See https://github.com/pdugas/Perl-Dugas for details.
+on various projects.  See https://github.com/pdugas/perl-Dugas for details.
 
 %prep
-%setup -q -n Perl-Dugas-%{name}-%{version}
+%setup -q -n perl-Dugas-%{name}-%{version}
 
 %build
 %{__perl} Makefile.PL INSTALLDIRS=vendor NO_PACKLIST=1

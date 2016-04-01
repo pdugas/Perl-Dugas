@@ -1,6 +1,6 @@
 #!perl -T
 # =============================================================================
-# Perl-Dugas - The Dugas Family of Perl Modules
+# perl-Dugas - The Dugas Family of Perl Modules
 # =============================================================================
 # @file     t/Dugas::Util.t
 # @brief    Unit-Tests

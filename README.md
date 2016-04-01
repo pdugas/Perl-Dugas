@@ -1,6 +1,6 @@
-Perl-Dugas
+perl-Dugas
 ==========
-**Perl-Dugas** is a family of Perl modules that I pull into various projects as
+**perl-Dugas** is a family of Perl modules that I pull into various projects as
 needed.  It's my personal bag of tools that I've put together over the
 years where I needed something that wasn't provided by stock Perl or another
 module (without dependency issues).  I typically just pull the `lib/`
@@ -24,7 +24,7 @@ The following Perl modules are included:
 
 CONTENTS
 --------
-This is the top-level directory of the Perl-Dugas package.  It contains the
+This is the top-level directory of the perl-Dugas package.  It contains the
 following files and subdirectories:
 
 * `bin/` - Example programs
@@ -64,7 +64,7 @@ Building an RPM package is a matter of the following on a RedHat/CentOS machine.
 
     # yum install -y rpm-build redhat-rpm-config rpmdevtools yum-utils
     # rpmdev-setuptree
-    # wget https://raw.githubusercontent.com/pdugas/Perl-Dugas/perl-Dugas-0.1/perl-Dugas.spec
+    # wget https://raw.githubusercontent.com/pdugas/perl-Dugas/perl-Dugas-0.1/perl-Dugas.spec
     # spectool -g -R perl-Dugas.spec
     # yum-builddep -y perl-Dugas.spec
     # rpmbuild -ba perl-Dugas.spec
@@ -76,7 +76,7 @@ TODO
 
 SUPPORT & DOCUMENTATION
 -----------------------
-The project page at http://github.com/pdugas/Perl-Dugas/ should be used to
+The project page at http://github.com/pdugas/perl-Dugas/ should be used to
 ask questions or provide feedback.  After installing, you can find
 documentation for this module with the perldoc command.
 
