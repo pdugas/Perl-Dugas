@@ -243,9 +243,25 @@ END_DEFAULT_INI
                              "   Hostname or IP address")
     unless $local;
 
+  # Done
+  return $self;
+}
+
+=head1 METHODS
+
+=head2 getopts ( )
+
+We override the B<Monitoring::Plugin>'s getopts() routine to add some additional
+logic to loading and validating program options.
+
+=cut
+
+sub getopts {
+  my $self = shift;
+
   # Add the PREVIOUS arguments
   #   - Using -P after seeing a handful of existing plugins use it.
-  if ($prev) {
+  if ($self->{prev}) {
     $self->add_arg(spec     => 'prevperfdata|prev|P=s',
                    help     => "-P, --prev, --prevperfdata=PERFDATA\n".
                                "   Previous PERFDATA from Nagios, ".
@@ -254,7 +270,7 @@ END_DEFAULT_INI
   }
 
   # Add the SNMP arguments
-  if ($snmp) {
+  if ($self->{snmp}) {
     $self->add_arg(spec     => 'community|c=s',
                    help     => "-c, --community=STRING\n".
                                "   SNMP v1 or v2c community (default: ".
@@ -311,7 +327,7 @@ END_DEFAULT_INI
   }
 
   # Add the SSH arguments
-  if ($ssh) {
+  if ($self->{ssh}) {
     $self->add_arg(spec     => 'sshuser|username|u=s',
                    help     => "-u, --username=STRING\n".
                                "   SSH username (default: ".
@@ -338,21 +354,6 @@ END_DEFAULT_INI
                    default  => $self->conf('ssh','keyphrase'));
   }
 
-  # Done
-  return $self;
-}
-
-=head1 METHODS
-
-=head2 getopts ( )
-
-We override the B<Monitoring::Plugin>'s getopts() routine to add some additional
-logic to loading and validating program options.
-
-=cut
-
-sub getopts {
-  my $self = shift;
   $self->SUPER::getopts();
 
   pod2usage(-exitval => 0, -verbose => 2)
