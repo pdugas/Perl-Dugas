@@ -18,11 +18,14 @@ use Dugas::Logger;
 use Dugas::Monitoring;
 use Dugas::Util;
 use FindBin;
+use JSON;
+use LWP::Simple;
 use Monitoring::Plugin::Performance use_die => 1;
 use Net::OpenSSH;
 use Net::SNMP;
 use Params::Validate qw(:all);
 use Pod::Usage;
+use URI;
 
 =head1 NAME
 
@@ -75,6 +78,12 @@ use constant CRITICAL   => Monitoring::Plugin::CRITICAL;
 use constant UNKNOWN    => Monitoring::Plugin::UNKNOWN;
 use constant DEPENDENT  => Monitoring::Plugin::DEPENDENT;
 
+use constant QUERY_HOST    => 'localhost';
+use constant QUERY_BASE    => '/nagios/cgi-bin';
+use constant QUERY_OBJECT  => '/objectjson.cgi';
+use constant QUERY_STATUS  => '/statusjson.cgi';
+use constant QUERY_ARCHIVE => '/archivejson.cgi';
+
 =head1 CONSTRUCTOR
 
 =head2 B<new( OPTIONS )>
@@ -118,7 +127,8 @@ a number of program options and the I<ssh()> method.
 
 =cut
 
-sub new {
+sub new
+{
   my $class = shift;
 
   my %opts = @_;
@@ -249,14 +259,15 @@ END_DEFAULT_INI
 
 =head1 METHODS
 
-=head2 getopts ( )
+=head2 getopts()
 
 We override the B<Monitoring::Plugin>'s getopts() routine to add some additional
 logic to loading and validating program options.
 
 =cut
 
-sub getopts {
+sub getopts
+{
   my $self = shift;
 
   # Add the PREVIOUS arguments
@@ -533,7 +544,8 @@ B<DEFAULT> value if the key or section don't exist.
 
 =cut
 
-sub conf {
+sub conf
+{
   my $self    = shift or confess("Missing SELF parameter");
   my $section = shift or confess("Missing SECTION parameter");
   my $key     = shift or confess("Missing KEY parameter");
@@ -546,16 +558,17 @@ sub conf {
 
 The following B<Monitoring::Plugin> methods are being enhanced.
 
-=head2 plugin_exit ( CODE, [MESSAGE, [OUTPUT] ) )
+=head2 plugin_exit( CODE, [MESSAGE, [OUTPUT] ) )
 
 We add the optional B<OUTPUT> parameter used to send the given string to the
 output as the LONGSERVICEOUTPUT text.
 
 =cut
 
-sub plugin_exit {
+sub plugin_exit
+{
   my $self = shift or confess('Missing SELF parameter');
-  my $code = shift;
+  my $code = shift; $code = uc $code unless $code =~ /^\d+$/;
   my $msg  = shift;
   my $long = shift;
 
@@ -564,13 +577,14 @@ sub plugin_exit {
   return $self->SUPER::plugin_exit($code, $msg);
 }
 
-=head2 check_messages ( [OPTIONS] )
+=head2 check_messages( [OPTIONS] )
 
 We add join=>', ' and join_all=>' and ' as default OPTIONs.
 
 =cut
 
-sub check_messages {
+sub check_messages
+{
   my $self = shift or confess('Missing SELF parameter');
   my $opts = {@_};
 
@@ -585,15 +599,16 @@ sub check_messages {
 The following methods and constants for use when the C<snmp> parameter was
 passed to the constructor.
 
-=head2 snmp ( )
+=head2 snmp()
 
 Returns a B<Net::SNMP> session object configured using the program options
 provided and runtime configuration.
 
 =cut
 
-sub snmp {
-  my $self = shift or confess('MISSING SELF parameter');
+sub snmp
+{
+  my $self = shift or confess('Missing SELF parameter');
 
   unless ($self->{snmp}) {
     error("Plugin not configured for SNMP!");
@@ -678,7 +693,8 @@ Returns UNDEF if there is an error.
 
 =cut
 
-sub snmp_get {
+sub snmp_get
+{
   my $self = shift or confess("Missing SELF parameter");
   croak("Missing OID parameters") unless @_;
 
@@ -717,7 +733,8 @@ Returns UNDEF if there is an error.
 
 =cut
 
-sub snmp_get_table {
+sub snmp_get_table
+{
   my $self  = shift or confess("Missing SELF parameter");
   my $table = shift or confess("Missing TABLE_OID parameter");
   my $names = shift;
@@ -748,7 +765,8 @@ Experimental.
 
 =cut
 
-sub snmp_walk {
+sub snmp_walk
+{
   my $self  = shift or confess("Missing SELF parameter");
   my $oid   = shift or confess("Missing OID parameter");
   my $names = shift;
@@ -1132,15 +1150,16 @@ our %SNMP_IFTYPE = ( %_SNMP_IFTYPE, reverse(%_SNMP_IFTYPE) );
 The following methods are enabled if the C<ssh> parameter was passed to the
 constructor.
 
-=head2 ssh ( )
+=head2 ssh()
 
 Returns a B<Net::OpenSSH> object configured using the program options provided
 and runtime configuration.
 
 =cut
 
-sub ssh {
-  my $self = shift or confess('MISSING SELF parameter');
+sub ssh
+{
+  my $self = shift or confess('Missing SELF parameter');
 
   unless ($self->{ssh}) {
     error("Plugin not configured for SSH!");
@@ -1163,7 +1182,6 @@ sub ssh {
     my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
     if ($ssh->error) {
       $self->{openssh_error} = $ssh->error;
-      error("SSH to ".$self->opts->hostname." failed; ".$ssh->error);
       return undef;
     }
     $self->{openssh} = $ssh;
@@ -1172,49 +1190,53 @@ sub ssh {
   return $self->{openssh};
 }
 
-=head2 ssh_error ( )
+=head2 ssh_error()
 
 Returns the C<Net::OpenSSH::error> value from the last call to C<ssh()>.
 
 =cut
 
-sub ssh_error {
-  my $self = shift or confess('MISSING SELF parameter');
+sub ssh_error
+{
+  my $self = shift or confess('Missing SELF parameter');
   return $self->{openssh_error};
 }
 
-=head2 ssh_system ( )
+=head2 ssh_system()
 
 Shorthand for the system() method on the B<Net::OpenSSH> object returned by the
 ssh() method.
 
 =cut
 
-sub ssh_system {
+sub ssh_system
+{
   my $self = shift or confess("Missing SELF parameter");
   return $self->ssh()->system(@_);
 }
 
-=head2 ssh_capture ( )
+=head2 ssh_capture()
 
 Shorthand for the capture() method on the B<Net::OpenSSH> object returned by
 the ssh() method.
 
 =cut
 
-sub ssh_capture {
+sub ssh_capture
+{
   my $self = shift or confess("Missing SELF parameter");
   return $self->ssh()->capture(@_);
 }
 
-=head2 ssh_pipe ( )
+=head2 ssh_pipe()
 
 Shorthand for the pipe() method on the B<Net::OpenSSH> object returned by the
 ssh() method.
 
 =cut
 
-sub ssh_pipe {
+sub ssh_pipe
+{
   my $self = shift or confess("Missing SELF parameter");
   return $self->ssh()->pipe_in(@_);
 }
@@ -1226,7 +1248,7 @@ of the plugin.  These are only avialble if the C<prev> parameter was passed
 to the constructor.  They rely on the C<--prevperfdata> parameter being
 provided on the command line.
 
-=head2 prev ( )
+=head2 prev()
 
 Returns a reference to a hash that contains the parsed previous performance 
 data.  There will be a key matching each entry in the perfdata and the values
@@ -1234,8 +1256,9 @@ will be B<Monitoring::Plugin::Performance> objects.
 
 =cut
 
-sub prev {
-  my $self = shift or confess('MISSING SELF parameter');
+sub prev
+{
+  my $self = shift or confess('Missing SELF parameter');
 
   unless ($self->{prev}) {
     error("Plugin not configured for PREV!");
@@ -1243,17 +1266,139 @@ sub prev {
   }
 
   $self->{prevData}
-    = Dugas::Monitoring::Plugin::parse_perfdata($self->opts->prevperfdata)
+    = Dugas::Monitoring::Plugin::_parse_perfdata($self->opts->prevperfdata)
     unless exists $self->{prevData};
 
   return $self->{prevData};
 }
 
+=head1 JSON QUERY METHODS
+
+Nagios-4.0.7 and beyond provides a JSON Query integration API.  The methods
+below provide an interface to these queries.  See C</nagios/jsonquery.html> on
+your Nagios server for details.
+
+The C<OPTIONS> passed to these C<query_*> methods are passed along as HTTP
+query parameters verbatem with the exception of the options below which are
+used to build the URL and are not passwd as query parameters.
+
+=over
+
+=item B<host =E<gt> HOSTNAME|IPADDRESS>
+
+Specify the hostname or IP address of the Nagios server.  Defaults to
+C<localhost>.
+
+=item B<user =E<gt> USERNAME>
+
+Specify the username to connect with.  Not defined by default.
+
+=item B<pass =E<gt> PASSWORD>
+
+Specify the password to connect with.  Not defined by default.  Only used if
+C<user> is specified.
+
+=item B<base =E<gt> URI>
+
+Specify the base URI to connect to.  Defaults to C</nagios/cgi-bin>.
+
+=back
+
+=head2 $hostlist = query_hostlist( OPTIONS )
+
+Returns a hashref representing the results of an Object JSON CGI 'hostlist'
+query.  Returns C<undef> if the request fails.
+
+=cut
+
+sub query_hostlist
+{
+  my $self = shift or confess('Missing SELF parameter');
+  return $self->_query(type=>QUERY_OBJECT,
+                       query=>'hostlist', 
+                       @_);
+}
+
+=head2 $status = query_status_host( HOST, OPTIONS )
+
+Returns a hashref representing the results of an Status JSON CGI 'host'
+query.  Returns C<undef> if the request fails.
+
+=cut
+
+sub query_status_host
+{
+  my $self = shift or confess('Missing SELF parameter');
+  my $host = shift or confess('Missing HOST parameter');
+  return $self->_query(type=>QUERY_STATUS,
+                       query=>'host', 
+                       hostname=>$host,
+                       @_);
+}
+
+=head2 $status = query_status_service( HOST, SERVICE, OPTIONS )
+
+Returns a hashref representing the results of an Status JSON CGI 'service'
+query.  Returns C<undef> if the request fails.
+
+=cut
+
+sub query_status_service
+{
+  my $self    = shift or confess('Missing SELF parameter');
+  my $host    = shift or confess('Missing HOST parameter');
+  my $service = shift or confess('Missing SERVICE parameter');
+  return $self->_query(type=>QUERY_STATUS,
+                       query=>'service', 
+                       hostname=>$host,
+                       servicedescription=>$service,
+                       @_);
+}
+
+sub _query
+{
+  my $self = shift or confess('Missing SELF parameter');
+dump('opts', \@_);
+  my %opts = ( formatoptions=>'enumerate', @_ );
+
+  my $host = $opts{host} // QUERY_HOST; delete $opts{host};
+  my $base = $opts{base} // QUERY_BASE; delete $opts{base};
+  my $user = $opts{user};               delete $opts{host};
+  my $pass = $opts{pass};               delete $opts{host};
+  my $type = $opts{type};               delete $opts{type};
+
+  confess('Missing TYPE parameter') unless $type;
+
+  my $url = 'http://'.$host.$base.$type;
+     $url = URI->new($url);
+     $url->query_form(%opts);
+  my $ua  = LWP::UserAgent->new;
+  my $req = HTTP::Request->new(GET => $url);
+     $req->authorization_basic($user||'', $pass||'') if ($user || $pass);
+
+  my $res = $ua->request($req);
+  if ($res->is_error) {
+    error("Query failed; ", $res->status_line);
+    return undef;
+  }
+
+  my $json = decode_json $res->content;
+  dump('json', $json);
+  unless (defined $json &&
+          exists $json->{result}{type_code} && 
+          $json->{result}{type_code} == 0) {
+    error("Query failed; ".$json->{result}{message});
+    return undef;
+  }
+
+  return $json;
+}
+
 =head1 OTHER METHODS
 
-=head2 $make = probe_host ( )
+=head2 $make = probe_host()
 
-=head2 ($make, $sysinfo, $extra) = probe_host ( )
+=head2 ($make, $sysinfo, $extra) = probe_host()
 
 The B<probe_host()> method tries to identify the make (i.e. manufacturer or
 vendor name) of a host.  In scalar context, a string is returned.  In array
@@ -1265,6 +1410,67 @@ constructor and the C<local> parameter was not.  This routine relies on SNMP.
 
 =cut
 
+my %MAKES = (
+  adtran    => { oid=>'1.3.6.1.4.1.664'                          },
+  apc       => { oid=>'1.3.6.1.4.1.318'                          },
+  axis      => { oid=>'1.3.6.1.4.1.368'                          },
+  aztec     => { oid=>'1.3.6.1.4.1.4651'                         },
+  brother   => { oid=>'1.3.6.1.4.1.2435'                         },
+  cisco     => { oid=>'1.3.6.1.4.1.9'                            },
+  coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
+  digi      => { oid=>'1.3.6.1.4.1.332'                          },
+  digipower => { oid=>'1.3.6.1.4.1.17420'                        },
+  foundry   => { oid=>'1.3.6.1.4.1.1991'                         },
+  freebsd   => { oid=>'1.3.6.1.4.1.12325'                        },
+  juniper   => { oid=>'1.3.6.1.4.1.2636'                         },
+  minuteman => { oid=>'1.3.6.1.4.1.2254'                         },
+  moxa      => { oid=>'1.3.6.1.4.1.8691'                         },
+  netgear   => { oid=>'1.3.6.1.4.1.4526'                         },
+  netsnmp   => { oid=>'1.3.6.1.4.1.8072', extra=>\&extra_netsnmp },
+  ntcip     => { oid=>'1.3.6.1.4.1.1206', extra=>\&extra_ntcip   },
+  optelecom => { oid=>'1.3.6.1.4.1.17534'                        },
+  pronet    => { oid=>'1.3.6.1.4.1.1723'                         },
+  sierra    => { oid=>'1.3.6.1.4.1.20542'                        },
+  ucdsnmp   => { oid=>'1.3.6.1.4.1.2021', extra=>\&extra_ucdsnmp },
+  vermac    => { oid=>'1.3.6.1.4.1.16892'                        },
+  yealink   => { oid=>'1.3.6.1.4.1.37459'                        },
+);
+
+sub probe_host
+{
+  my $self = shift or confess('Missing SELF parameter');
+  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
+                     "when SNMP is enabled and --hostname is set.")
+    unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
+  
+  my ($make, $sysInfo, $extra) = (undef, $self->get_sysinfo(), undef);
+  if ($sysInfo) {
+    dump("sysInfo", $sysInfo);
+    foreach (keys %MAKES) {
+      if (Net::SNMP::oid_base_match($MAKES{$_}{oid}, $sysInfo->{sysObjectID})) {
+        debug("sysObjectID matches $_");
+        ($make, $extra) = ($_, undef);
+        if (exists $MAKES{$_}{extra}) {
+          my $ex = $MAKES{$_}{extra}; # 
+            ($make, $extra) = $self->$ex($sysInfo);
+        }
+        last;
+      }
+    }
+  } else {
+    debug("Failed to get sysInfo.");
+  }
+
+  # This is a little hack to detect some NTCIP-only gear.
+  ($make, $extra) = $self->extra_ntcip($sysInfo) unless $make;
+
+  if (wantarray) {
+    return ($make, $sysInfo, $extra);
+  } else {
+    return $make;
+  }
+}
+
 # These extra_*() routines are used to refine the MAKE result of probe_host()
 # when the sysObjectID value is generic.  The idea is to look at additional
 # data in the given SYSINFO objects or to probe the device further.
@@ -1275,7 +1481,8 @@ Refine the MAKE result of probe_host() when the sysObjectID value is "netsnmp".
 
 =cut
 
-sub extra_netsnmp {
+sub extra_netsnmp
+{
   my $self    = shift or confess('Missing SELF parameter');
   my $sysInfo = shift or confess('Missing SYSINFO parameter');
 
@@ -1292,7 +1499,8 @@ Refine the MAKE result of probe_host() when the sysObjectID value is "ucdsnmp".
 
 =cut
 
-sub extra_ucdsnmp {
+sub extra_ucdsnmp 
+{
   my $self    = shift or confess('Missing SELF parameter');
   my $sysInfo = shift or confess('Missing SYSINFO parameter');
 
@@ -1316,7 +1524,8 @@ Refine the MAKE result of probe_host() when the sysObjectID value is NTCIP.
 
 =cut
 
-sub extra_ntcip {
+sub extra_ntcip
+{
   my $self    = shift or confess('Missing SELF parameter');
   my $sysInfo = shift;
 
@@ -1357,74 +1566,15 @@ sub extra_ntcip {
   return ($make, $extra);
 }
 
-my %MAKES = (
-  adtran    => { oid=>'1.3.6.1.4.1.664'                          },
-  apc       => { oid=>'1.3.6.1.4.1.318'                          },
-  axis      => { oid=>'1.3.6.1.4.1.368'                          },
-  aztec     => { oid=>'1.3.6.1.4.1.4651'                         },
-  brother   => { oid=>'1.3.6.1.4.1.2435'                         },
-  cisco     => { oid=>'1.3.6.1.4.1.9'                            },
-  coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
-  digi      => { oid=>'1.3.6.1.4.1.332'                          },
-  digipower => { oid=>'1.3.6.1.4.1.17420'                        },
-  foundry   => { oid=>'1.3.6.1.4.1.1991'                         },
-  freebsd   => { oid=>'1.3.6.1.4.1.12325'                        },
-  juniper   => { oid=>'1.3.6.1.4.1.2636'                         },
-  minuteman => { oid=>'1.3.6.1.4.1.2254'                         },
-  moxa      => { oid=>'1.3.6.1.4.1.8691'                         },
-  netgear   => { oid=>'1.3.6.1.4.1.4526'                         },
-  netsnmp   => { oid=>'1.3.6.1.4.1.8072', extra=>\&extra_netsnmp },
-  ntcip     => { oid=>'1.3.6.1.4.1.1206', extra=>\&extra_ntcip   },
-  optelecom => { oid=>'1.3.6.1.4.1.17534'                        },
-  pronet    => { oid=>'1.3.6.1.4.1.1723'                         },
-  sierra    => { oid=>'1.3.6.1.4.1.20542'                        },
-  ucdsnmp   => { oid=>'1.3.6.1.4.1.2021', extra=>\&extra_ucdsnmp },
-  vermac    => { oid=>'1.3.6.1.4.1.16892'                        },
-  yealink   => { oid=>'1.3.6.1.4.1.37459'                        },
-);
-
-sub probe_host {
-  my $self = shift or confess('MISSING SELF parameter');
-  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
-                     "when SNMP is enabled and --hostname is set.")
-    unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
-  
-  my ($make, $sysInfo, $extra) = (undef, $self->get_sysinfo(), undef);
-  if ($sysInfo) {
-    dump("sysInfo", $sysInfo);
-    foreach (keys %MAKES) {
-      if (Net::SNMP::oid_base_match($MAKES{$_}{oid}, $sysInfo->{sysObjectID})) {
-        debug("sysObjectID matches $_");
-        ($make, $extra) = ($_, undef);
-        if (exists $MAKES{$_}{extra}) {
-          my $ex = $MAKES{$_}{extra}; # 
-            ($make, $extra) = $self->$ex($sysInfo);
-        }
-        last;
-      }
-    }
-  } else {
-    debug("Failed to get sysInfo.");
-  }
-
-  # This is a little hack to detect some NTCIP-only gear.
-  ($make, $extra) = $self->extra_ntcip($sysInfo) unless $make;
-
-  if (wantarray) {
-    return ($make, $sysInfo, $extra);
-  } else {
-    return $make;
-  }
-}
-
-=head2 get_sysinfo ( )
+=head2 get_sysinfo()
 
 Returns the a hashref with OIDs as keys and the results of snmp_get() as
 values.
 
 =cut
 
-sub get_sysinfo {
+sub get_sysinfo
+{
   my $self = shift or confess('Missing SELF parameter');
   my %OIDS = (
       sysDescr    => '1.3.6.1.2.1.1.1.0',
@@ -1441,13 +1591,14 @@ sub get_sysinfo {
   return undef;
 }
 
-=head2 get_http ( $URI )
+=head2 get_http( URI )
 
 Returns the content of an HTTP request to the given URI on the host.
 
 =cut
 
-sub get_http {
+sub get_http
+{
   my $self = shift or confess('Missing SELF parameter');
   my $uri  = shift or confess('Missing URI parameter');
   my $opts = validate(@_, {
@@ -1481,19 +1632,8 @@ sub get_http {
   return $res->content;
 }
 
-=head1 UTILITIES
-
-The following subroutines are "static"; i.e. not methods of the class.
-
-=head2 Dugas::Plugin::parse_perfdata ( PERFDATA )
-
-Takes a I<PERFDATA> string output by a Nagios plugin and returns the data
-broken out into a hash.  This is just converting the results of 
-B<Monitoring::Plugin::Perforamnce::parse_perfstring()> into a hash.
-
-=cut
-
-sub parse_perfdata {
+sub _parse_perfdata
+{
   my $perfdata = shift || '';
   my $ret = {};
   foreach (Monitoring::Plugin::Performance->parse_perfstring($perfdata))
@@ -1501,15 +1641,8 @@ sub parse_perfdata {
   return $ret;
 }
 
-=head2 sortKeys( HASH )
-
-Custom sort B<Data::Dumper::Sortkeys> routine that groups and sorts OID and
-non-OID keys in a hash.  Used here so the dump() routine can dump the 
-results of SNMP requests cleanly.
-
-=cut
-
-sub sortKeys {
+sub _sort_keys
+{
   my (@oids, @others);
   foreach (keys %{$_[0]}) {
     if (/^(\.\d+)+$/) { push @oids, $_; } else { push @others, $_; }
@@ -1519,7 +1652,7 @@ sub sortKeys {
 
 =head1 SEE ALSO
 
-B<Dugas::Monitoring>, B<Dugas::Logger>, B<Monitoring::Plugin>, B<Net::SNMP>
+B<Monitoring::Plugin>, B<Dugas::Logger>
 
 =head1 AUTHOR
 
@@ -1534,7 +1667,7 @@ L<http://github.com/pdugas/perl-Dugas>.
 
 You can find documentation for this module with the perldoc command.
 
-    perldoc Dugas
+    perldoc Dugas::Monitoring::Plugin
 
 =head1 LICENSE AND COPYRIGHT
 
