@@ -842,6 +842,8 @@ our %SNMP_OIDS = (
     ifOutErrors     => '.1.3.6.1.2.1.2.2.1.20',
     ifOutQlen       => '.1.3.6.1.2.1.2.2.1.21', # DEPRECATED
     ifSpecific      => '.1.3.6.1.2.1.2.2.1.22', # DEPRECATED
+    hrSystemUptime  => '.1.3.6.1.2.1.25.1.1',
+    sysUpTime       => '.1.3.6.1.2.1.1.3',
 );
 
 =head2 %SNMP_IFSTATUS
