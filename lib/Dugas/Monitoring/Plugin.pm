@@ -167,14 +167,12 @@ ENDUSAGE
   # The "snmp" parameter indicates we should setup for SNMP.
   my $snmp;
   if (exists $opts{snmp}) {
-    fatal("Can't use both \"snmp\" and \"ssh\" parameters in constructor.")
-      if exists $opts{ssh};
     $snmp = $opts{snmp};
     delete $opts{snmp};
     if ($snmp) {
       $opts{usage} .= <<ENDUSAGE;
-       [-c snmp_community] [-p snmp_port] 
-       [--protocol version|-1|-2|-3] 
+       [-c snmp_community] [--snmpport port] 
+       [--protocol version|-1|-2|-2c|-3] 
        [-l seclevel] [-u secname] 
        [-a authproto] [-A authpasswd] 
        [-x privproto] [-x privpasswd]
@@ -189,7 +187,7 @@ ENDUSAGE
     delete $opts{ssh};
     if ($ssh) {
       $opts{usage} .= <<ENDUSAGE;
-       [-P port] [-u username] [-p password] 
+       [--sshport port] [-u username] [-p password] 
        [-k keypath] [-K keyphrase]
 ENDUSAGE
     }
@@ -287,19 +285,19 @@ sub getopts
                                "   SNMP v1 or v2c community (default: ".
                                $self->conf('snmp','community').")",
                    default  => $self->conf('snmp','community'));
-    $self->add_arg(spec     => 'snmpport|p=i',
-                   help     => "-p, --snmpport=INTEGER\n".
+    $self->add_arg(spec     => 'snmpport=i',
+                   help     => "--snmpport=INTEGER\n".
                                "   SNMP port number (default: ".
                                $self->conf('snmp','port').")",
                    default  => $self->conf('snmp','port'));
-    $self->add_arg(spec     => 'protocol=s',
+    $self->add_arg(spec     => 'protocol|snmpver=s',
                    help     => "--protocol=[1|2|2c|3]\n".
                                "   SNMP protocol version (default: 1)");
     $self->add_arg(spec     => '1',
                    help     => "-1\n".
                                "   Use SNMPv1 (default)");
     $self->add_arg(spec     => '2c|2C|2',
-                   help     => "-2\n".
+                   help     => "-2, -2c\n".
                                "   Use SNMPv2c");
     $self->add_arg(spec     => '3',
                    help     => "-3\n".
@@ -310,8 +308,8 @@ sub getopts
                                "   SNMPv3 securityLevel (default: ".
                                $self->conf('snmp','seclevel').")",
                    default  => $self->conf('snmp','seclevel'));
-    $self->add_arg(spec     => 'secname|u=s',
-                   help     => "-u, --secname=USERNAME\n".
+    $self->add_arg(spec     => 'secname|snmpuser|u=s',
+                   help     => "-u, --snmpuser, --secname=USERNAME\n".
                                "   SNMPv3 username (default: ".
                                $self->conf('snmp','secname').")",
                    default  => $self->conf('snmp','secname'));
@@ -339,27 +337,27 @@ sub getopts
 
   # Add the SSH arguments
   if ($self->{ssh}) {
-    $self->add_arg(spec     => 'sshuser|username|u=s',
-                   help     => "-u, --username=STRING\n".
+    $self->add_arg(spec     => 'sshuser=s',
+                   help     => "--sshuser=STRING\n".
                                "   SSH username (default: ".
                                ($self->conf('ssh','username')||$ENV{USER}).")",
                    default  => $self->conf('ssh','username')||$ENV{USER});
-    $self->add_arg(spec     => 'sshport|port|P=s',
-                   help     => "-P, --port=INT\n".
+    $self->add_arg(spec     => 'sshport=s',
+                   help     => "--sshport=INT\n".
                                "   SSH port (default: ".
                                $self->conf('ssh','port').")",
                    default  => $self->conf('ssh','port'));
-    $self->add_arg(spec     => 'sshpass|password|p=s',
-                   help     => "-p, --password=STRING\n".
+    $self->add_arg(spec     => 'sshpass=s',
+                   help     => "-sshpass=STRING\n".
                                "   SSH password",
                    default  => $self->conf('ssh','password'));
-    $self->add_arg(spec     => 'sshkeypath|keypath|k=s',
-                   help     => "-k, --keypath=FILENAME\n".
+    $self->add_arg(spec     => 'sshkeypath|keypath=s',
+                   help     => "--keypath=FILENAME\n".
                                "   SSH private key file (default: ".
                                $self->conf('ssh','keypath').")",
                    default  => $self->conf('ssh','keypath'));
-    $self->add_arg(spec     => 'sshkeyphrase|keyphrase|K=s',
-                   help     => "-K, --keyphrase=PASSPHRASE\n".
+    $self->add_arg(spec     => 'sshkeyphrase|keyphrase=s',
+                   help     => "--keyphrase=PASSPHRASE\n".
                                "   Passphrase to unlock the key (default: ".
                                $self->conf('ssh','keyphrase').")",
                    default  => $self->conf('ssh','keyphrase'));
@@ -404,18 +402,18 @@ sub getopts
       }
     }
     if (defined $self->opts->{'1'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
-        if defined $self->{proto};
+      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+            "Not both.") if defined $self->{proto};
       $self->{proto} = 1;
     }
     if (defined $self->opts->{'2c'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
-        if defined $self->{proto};
+      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+            "Not both.") if defined $self->{proto};
       $self->{proto} = 2;
     }
     if (defined $self->opts->{'3'}) {
-      fatal("Please use either --protocol or -1|-2|-2c|-3 to set SNMP version. Not both.")
-        if defined $self->{proto};
+      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+            "Not both.") if defined $self->{proto};
       $self->{proto} = 3;
     }
     $self->{proto} = 1 unless $self->{proto};
