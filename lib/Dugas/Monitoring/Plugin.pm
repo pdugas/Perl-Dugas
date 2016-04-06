@@ -12,6 +12,7 @@ use 5.006;
 use strict;
 use warnings FATAL => 'all';
 use parent 'Monitoring::Plugin';
+
 use Carp;
 use Config::IniFiles;
 use Dugas::Logger;
@@ -22,9 +23,9 @@ use JSON;
 use LWP::Simple;
 use Monitoring::Plugin::Performance use_die => 1;
 use Net::OpenSSH;
-use Net::SNMP;
 use Params::Validate qw(:all);
 use Pod::Usage;
+use SNMP;
 use URI;
 
 =head1 NAME
@@ -59,17 +60,16 @@ our $VERSION = '0.1';
 
 The constants exported by B<Monitoring::Plugin> (i.e. OK, WARNING, CRITICAL,
 etc.) are similarly exported by default.  The C<:STATUS> tag can be used to
-import them as a set.  The C<%SNMP_> hashes are available for importing
-individually or using the C<:SNMP> tag.
+import them as a set.  The C<:all> tag imports everything.
 
 =cut
 
 use Exporter;
 our @EXPORT = qw(OK WARNING CRITICAL UNKNOWN DEPENDENT);
-our @EXPORT_OK = qw(%SNMP_OIDS %SNMP_IFSTATUS %SNMP_IFTYPE);
+our @EXPORT_OK = qw();
 our %EXPORT_TAGS = (
     STATUS => [qw(OK WARNING CRITICAL UNKNOWN DEPENDENT)],
-    SNMP   => [qw(%SNMP_OIDS %SNMP_IFSTATUS %SNMP_IFTYPE)],
+    all    => [@EXPORT, @EXPORT_OK],
 );
 
 use constant OK         => Monitoring::Plugin::OK;
@@ -115,8 +115,8 @@ B<--prevperfdata> program option.
 =item B<snmp =E<gt> BOOL>
 
 If the B<BOOL> value is TRUE, the plugin will be configured to use SNMP.  This
-adds a number of command-line options as well as the I<snmp_get()> and
-I<snmp_get_table()> methods.  See the L<SNMP METHODS> section below.
+adds a number of command-line options as well as the I<snmpget()> and
+I<snmpget_table()> methods.  See the L<SNMP METHODS> section below.
 
 =item B<ssh =E<gt> BOOL>
 
@@ -215,9 +215,9 @@ ENDUSAGE
   seclevel=noAuthNoPriv
   secname=
   authproto=MD5
-  authpassword=
+  authpass=
   privproto=DES
-  privpassword=
+  privpass=
 [ssh]
   port=22
   username=
@@ -318,21 +318,21 @@ sub getopts
                                "   SNMPv3 authentication protocol (default: ".
                                $self->conf('snmp','authproto').")",
                    default  => $self->conf('snmp','authproto'));
-    $self->add_arg(spec     => 'authpassword|A=s',
-                   help     => "-A, --authpassword=PASSWORD\n".
+    $self->add_arg(spec     => 'authpass|A=s',
+                   help     => "-A, --authpass=PASSWORD\n".
                                "   SNMPv3 authentication password (default: ".
-                               $self->conf('snmp','authpassword').")",
-                   default  => $self->conf('snmp','authpassword'));
+                               $self->conf('snmp','authpass').")",
+                   default  => $self->conf('snmp','authpass'));
     $self->add_arg(spec     => 'privproto|x=s',
                    help     => "-x, --privproto=[DES|AES]\n".
                                "   SNMPv3 privacy protocol (default: ".
                                $self->conf('snmp','privproto').")",
                    default  => $self->conf('snmp','privproto'));
-    $self->add_arg(spec     => 'privpassword|X=s',
-                   help     => "-X, --privpassword=PASSWORD\n".
+    $self->add_arg(spec     => 'privpass|X=s',
+                   help     => "-X, --privpass=PASSWORD\n".
                                "   SNMPv3 privacy password (default: ".
-                               $self->conf('snmp','privpassword').")",
-                   default  => $self->conf('snmp','privpassword'));
+                               $self->conf('snmp','privpass').")",
+                   default  => $self->conf('snmp','privpass'));
   }
 
   # Add the SSH arguments
@@ -406,6 +406,11 @@ sub getopts
             "Not both.") if defined $self->{proto};
       $self->{proto} = 1;
     }
+    if (defined $self->opts->{'2'}) {
+      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+            "Not both.") if defined $self->{proto};
+      $self->{proto} = 2;
+    }
     if (defined $self->opts->{'2c'}) {
       fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
             "Not both.") if defined $self->{proto};
@@ -456,7 +461,7 @@ Specify the SNMP community string to use.  Only available if the "snmp"
 constructor parameter was given.  Defaults to the "community" value in the
 [snmp] section of the configuration file.
 
-=item B<-p | --snmpport PORT> (SNMP only)
+=item B<--snmpport PORT> (SNMP only)
 
 Specify the SNMP port number to use.  Only available if the "snmp" 
 constructor parameter was given.  Defaults to the "port" value in the
@@ -486,10 +491,10 @@ Specify the SNMPv3 authentication protocol to use.  Only available if the
 "snmp" constructor parameter was given.  Defaults to the "authproto" value in
 the [snmp] section of the configuration file.
 
-=item B<-A | --authpassword PASSWORD> (SNMP only)
+=item B<-A | --authpass PASSWORD> (SNMP only)
 
 Specify the SNMPv3 authentication password to use.  Only available if the
-"snmp" constructor parameter was given.  Defaults to the "authpassword" value
+"snmp" constructor parameter was given.  Defaults to the "authpass" value
 in the [snmp] section of the configuration file.
 
 =item B<-x | --privproto [DES|AES]> (SNMP only)
@@ -498,10 +503,10 @@ Specify the SNMPv3 privacy protocol to use.  Only available if the
 "snmp" constructor parameter was given.  Defaults to the "privproto" value
 in the [snmp] section of the configuration file.
 
-=item B<-X | --privpassword PASSWORD> (SNMP only)
+=item B<-X | --privpass PASSWORD> (SNMP only)
 
 Specify the SNMPv3 privacy password to use.  Only available if the
-"snmp" constructor parameter was given.  Defaults to the "privpassword" value
+"snmp" constructor parameter was given.  Defaults to the "privpass" value
 in the [snmp] section of the configuration file.
 
 =item B<-P | --prevperfdata PERFDATA> (PREV only)
@@ -531,9 +536,9 @@ defaults are as follows:
       seclevel=noAuthNoPriv
       secname=
       authproto=MD5
-      authpassword=
+      authpass=
       privproto=DES
-      privpassword=
+      privpass=
 
 =head2 conf( SECTION, KEY, [ DEFAULT ] )
 
@@ -599,8 +604,8 @@ passed to the constructor.
 
 =head2 snmp()
 
-Returns a B<Net::SNMP> session object configured using the program options
-provided and runtime configuration.
+Returns an B<SNMP::Session> object configured using the program options provided
+and runtime configuration.  
 
 =cut
 
@@ -615,14 +620,25 @@ sub snmp
 
   unless ($self->{snmpSession}) {
 
+    my $dest = $self->opts->hostname;
+    if ($self->opts->snmpport =~ /^(tcp:)?(.*)$/i) { 
+      $dest = ($1//'')."$dest:$2"; 
+    }
+
     my %opts = (
-      hostname  => $self->opts->hostname,
-      port      => $self->opts->snmpport,
-      version   => $self->{proto},
-      translate => [ timeticks => 0 ],
-      #timeout   => $self->opts->timeout,
-      timeout   => 5,
-      retries   => 1,
+      DestHost    => $dest,
+      Version     => $self->{proto},
+      Timeout     => $self->opts->timeout * 1000000,
+      Retries     => 1,
+      RetryNoSuch => 1,
+      Community   => $self->opts->community,
+      SecLevel    => $self->opts->seclevel,
+      SecName     => $self->opts->secname,
+      AuthProto   => $self->opts->authproto,
+      AuthPass    => $self->opts->authpass,
+      PrivProto   => $self->opts->privproto,
+      PrivPass    => $self->opts->privpass,
+      UseEnums    => 1,
     );
 
     $opts{community} = $self->opts->community
@@ -644,12 +660,12 @@ sub snmp
           unless ($self->opts->authproto =~ /^(MD5|SHA)$/i);
         $opts{authprotocol} = $self->opts->authproto;
 
-        fatal("Missing --authpassword")
-          unless (defined $self->opts->authpassword);
-        if ($self->opts->authpassword =~ /^0x/) {
-          $opts{authkey} = $self->opts->authpassword;
+        fatal("Missing --authpass")
+          unless (defined $self->opts->authpass);
+        if ($self->opts->authpass =~ /^0x/) {
+          $opts{authkey} = $self->opts->authpass;
         } else {
-          $opts{authpassword} = $self->opts->authpassword;
+          $opts{authpass} = $self->opts->authpass;
         }
       }
 
@@ -658,492 +674,22 @@ sub snmp
           unless ($self->opts->privproto =~ /^(DES|AES)$/i);
         $opts{privprotocol} = $self->opts->privproto;
 
-        fatal("Missing --privpassword")
-          unless (defined $self->opts->privpassword);
-        if ($self->opts->privpassword =~ /^0x/) {
-          $opts{privkey} = $self->opts->privpassword;
+        fatal("Missing --privpass")
+          unless (defined $self->opts->privpass);
+        if ($self->opts->privpass =~ /^0x/) {
+          $opts{privkey} = $self->opts->privpass;
         } else {
-          $opts{privpassword} = $self->opts->privpassword;
+          $opts{privpass} = $self->opts->privpass;
         }
       }
 
     } # if SNMPv3
 
-    my ($snmp, $error) = Net::SNMP->session(%opts);
-    $self->plugin_exit(Monitoring::Plugin::UNKNOWN, 
-                       "SNMP error; $error") unless (defined $snmp);
+    my $snmp = new SNMP::Session(%opts);
     $self->{snmpSession} = $snmp;
   }
   return $self->{snmpSession};
 }
-
-=head2 snmp_get({ NAME => OID, ... })
-
-=head2 snmp_get( OID, ... )
-
-SNMP GET one or more OIDs.  The first form takes a hashref of I<NAME> => I<OID>
-pairs and, on success, returns a hashref with a key for each I<NAME> and
-I<OID>.  The second form takes an array of I<OID>s and returns a has with
-I<OID>s as keys.  The values in the return hash are the results from the SNMP
-GET command.
-
-Returns UNDEF if there is an error.
-
-=cut
-
-sub snmp_get
-{
-  my $self = shift or confess("Missing SELF parameter");
-  croak("Missing OID parameters") unless @_;
-
-  my %names; # name/OID map
-  if (ref $_[0] eq ref {}) { %names = %{$_[0]}; shift; }
-  foreach (@_) { $names{$_} = $_; }
-
-  my @oids = values %names;
-  my $vals = $self->snmp->get_request(varbindlist => [@oids]);
-  if ($self->snmp->error_status() == 2) {
-    #debug($self->snmp->error().
-    #      '; OID='.$oids[$self->snmp->error_index()-1]);
-  } elsif ($self->snmp->error_status()) {
-    error($self->snmp->error());
-  }
-
-  my $ret = {};
-  if ($vals) {
-    foreach (sort { Net::SNMP::oid_lex_cmp($names{$b}, $names{$a}) }
-             keys %names) {
-      my $oid = $names{$_};
-      $ret->{$_} = $ret->{$oid} = $vals->{$oid};
-    }
-  }
-  return $ret;
-}
-
-=head2 snmp_get_table( TABLE_OID, [ NAMES ] )
-
-Calls B<Net::SNMP::get_table()> with the I<TABLE_OID>.  Returns a hashref with 
-the returned OIDs a keys.  The I<NAMES> parameter may be provided as a hash of
-I<NAME> => I<OID> pairs in which case the returned hashref will also have
-corresponding I<NAME> keys.
-
-Returns UNDEF if there is an error.
-
-=cut
-
-sub snmp_get_table
-{
-  my $self  = shift or confess("Missing SELF parameter");
-  my $table = shift or confess("Missing TABLE_OID parameter");
-  my $names = shift;
-
-  my $ret = $self->snmp->get_table(baseoid => $table);
-  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, $self->snmp->error())
-    if ($self->snmp->error_status());
-
-  if ($ret && $names && (ref $names eq ref {})) {
-    foreach my $oid (keys %$ret) {
-      next unless $oid =~ /^(.*)\.(\d+)$/; # XXX should we warn?
-      foreach (sort { Net::SNMP::oid_lex_cmp($names->{$b}, $names->{$a}) }
-               keys %$names) {
-        if ($oid =~ /^$names->{$_}\.(.*)$/) {
-          $ret->{"$_.$1"} = $ret->{$oid};
-          last;
-        }
-      }
-    }
-  }
-
-  return $ret;
-}
-
-=head2 snmp_walk( OID, [ NAMES ] )
-
-Experimental.
-
-=cut
-
-sub snmp_walk
-{
-  my $self  = shift or confess("Missing SELF parameter");
-  my $oid   = shift or confess("Missing OID parameter");
-  my $names = shift;
-  my $base  = $oid;
-  my $ret   = {};
-  debug("get_next_request($oid)");
-  while (defined $self->snmp->get_next_request(-varbindlist => [$oid])) {
-    $oid = ($self->snmp->var_bind_names())[0];
-    debug("got $oid");
-    last unless Net::SNMP::oid_base_match($base, $oid);
-    $ret->{$oid} = $self->snmp->var_bind_list()->{$oid};
-    debug("$oid = $ret->{$oid}");
-    debug("get_next_request($oid)");
-  }
-  return $ret;
-}
-
-=head2 %SNMP_OIDS
-
-The C<%SNMP_OIDS> hash contains a number of SNMP object names as keys and
-corresponding OIDs as values.  This is here as a convenience where we don't
-want to bother with MIB files but don't want to hardcode OIDs in too many
-places.
-
-  our %SNMP_OIDS = (
-    ifTable => '.1.3.6.1.2.1.2.2',
-    ...
-  );
-
-This can be used in place of hard coded OIDs like so.
-
-  my $objs = $plugin->snmp_get(%SNMP_OIDS{ifNumber});
-  my $iftable = $plugin->snmp_get_table(%SNMP_OIDS{ifTable});
-
-This can also be used as the C<NAMES> parameter to a number of the C<snmp_*>
-methods to automatically translate OIDs to names in responses.
-
-  my $iftable = $plugin->snmp_get_table(%SNMP_OIDS{ifTable}, \%SNMP_OIDS);
-
-The objects included here are those we use for our own projects.  Feel free to
-add your own like so.
-
-  my %myOIDs = ( 
-      %SNMP_OIDS, 
-      ifTable => '.1.3.6.1.2.1.2.2',
-      ...
-  );
-
-=cut
-
-our %SNMP_OIDS = (
-    ifNumber        => '.1.3.6.1.2.1.2.1',
-    ifTable         => '.1.3.6.1.2.1.2.2',
-    ifIndex         => '.1.3.6.1.2.1.2.2.1.1',
-    ifDescr         => '.1.3.6.1.2.1.2.2.1.2',
-    ifType          => '.1.3.6.1.2.1.2.2.1.3',
-    ifMtu           => '.1.3.6.1.2.1.2.2.1.4',
-    ifSpeed         => '.1.3.6.1.2.1.2.2.1.5',
-    ifPhysAddress   => '.1.3.6.1.2.1.2.2.1.6',
-    ifAdminStatus   => '.1.3.6.1.2.1.2.2.1.7',
-    ifOperStatus    => '.1.3.6.1.2.1.2.2.1.8',
-    ifLastChange    => '.1.3.6.1.2.1.2.2.1.9',
-    ifInOctets      => '.1.3.6.1.2.1.2.2.1.10',
-    ifInUcastPkts   => '.1.3.6.1.2.1.2.2.1.11',
-    ifInNUcastPkts  => '.1.3.6.1.2.1.2.2.1.12', # DEPRECATED
-    ifInDiscards    => '.1.3.6.1.2.1.2.2.1.13',
-    ifInErrors      => '.1.3.6.1.2.1.2.2.1.14',
-    ifInUnknownPkts => '.1.3.6.1.2.1.2.2.1.15',
-    ifOutOctets     => '.1.3.6.1.2.1.2.2.1.16',
-    ifOutUcastPkts  => '.1.3.6.1.2.1.2.2.1.17',
-    ifOutNUcastPkts => '.1.3.6.1.2.1.2.2.1.18', # DEPRECATED
-    ifOutDiscards   => '.1.3.6.1.2.1.2.2.1.19',
-    ifOutErrors     => '.1.3.6.1.2.1.2.2.1.20',
-    ifOutQlen       => '.1.3.6.1.2.1.2.2.1.21', # DEPRECATED
-    ifSpecific      => '.1.3.6.1.2.1.2.2.1.22', # DEPRECATED
-    hrSystemUptime  => '.1.3.6.1.2.1.25.1.1',
-    sysUpTime       => '.1.3.6.1.2.1.1.3',
-);
-
-=head2 %SNMP_IFSTATUS
-
-The C<%SNMP_IFSTATUS> hash contains forward and reverse mapping of ifStatus
-names and values.
-
-=cut
-
-my %_SNMP_IFSTATUS = (
-    1 => 'up',
-    2 => 'down',
-    3 => 'testing',
-    4 => 'unknown',
-    5 => 'dormant',
-    6 => 'notPresent',
-    7 => 'lowerLayerDown',
-);
-our %SNMP_IFSTATUS = ( %_SNMP_IFSTATUS, reverse(%_SNMP_IFSTATUS) );
-
-=head2 %SNMP_IFTYPE
-
-The C<%SNMP_IFTYPE> hash contains forward and reverse mapping of ifType
-names and values.
-
-=cut
-
-my %_SNMP_IFTYPE = (
-    1    => 'other',
-    2    => 'regular1822',
-    3    => 'hdh1822',
-    4    => 'ddnX25',
-    5    => 'rfc877x25',
-    6    => 'ethernetCsmacd',
-    7    => 'iso88023Csmacd',
-    8    => 'iso88024TokenBus',
-    9    => 'iso88025TokenRing',
-    10   => 'iso88026Man',
-    11   => 'starLan',
-    12   => 'proteon10Mbit',
-    13   => 'proteon80Mbit',
-    14   => 'hyperchannel',
-    15   => 'fddi',
-    16   => 'lapb',
-    17   => 'sdlc',
-    18   => 'ds1',
-    19   => 'e1',
-    20   => 'basicISDN',
-    21   => 'primaryISDN',
-    22   => 'propPointToPointSerial',
-    23   => 'ppp',
-    24   => 'softwareLoopback',
-    25   => 'eon',
-    26   => 'ethernet3Mbit',
-    27   => 'nsip',
-    28   => 'slip',
-    29   => 'ultra',
-    30   => 'ds3',
-    31   => 'sip',
-    32   => 'frameRelay',
-    33   => 'rs232',
-    34   => 'para',
-    35   => 'arcnet',
-    36   => 'arcnetPlus',
-    37   => 'atm',
-    38   => 'miox25',
-    39   => 'sonet',
-    40   => 'x25ple',
-    41   => 'iso88022llc',
-    42   => 'localTalk',
-    43   => 'smdsDxi',
-    44   => 'frameRelayService',
-    45   => 'v35',
-    46   => 'hssi',
-    47   => 'hippi',
-    48   => 'modem',
-    49   => 'aal5',
-    50   => 'sonetPath',
-    51   => 'sonetVT',
-    52   => 'smdsIcip',
-    53   => 'propVirtual',
-    54   => 'propMultiplexor',
-    55   => 'ieee80212',
-    56   => 'fibreChannel',
-    57   => 'hippiInterface',
-    58   => 'frameRelayInterconnect',
-    59   => 'aflane8023',
-    60   => 'aflane8025',
-    61   => 'cctEmul',
-    62   => 'fastEther',
-    63   => 'isdn',
-    64   => 'v11',
-    65   => 'v36',
-    66   => 'g703at64k',
-    67   => 'g703at2mb',
-    68   => 'qllc',
-    69   => 'fastEtherFX',
-    70   => 'channel',
-    71   => 'ieee80211',
-    72   => 'ibm370parChan',
-    73   => 'escon',
-    74   => 'dlsw',
-    75   => 'isdns',
-    76   => 'isdnu',
-    77   => 'lapd',
-    78   => 'ipSwitch',
-    79   => 'rsrb',
-    80   => 'atmLogical',
-    81   => 'ds0',
-    82   => 'ds0Bundle',
-    83   => 'bsc',
-    84   => 'async',
-    85   => 'cnr',
-    86   => 'iso88025Dtr',
-    87   => 'eplrs',
-    88   => 'arap',
-    89   => 'propCnls',
-    90   => 'hostPad',
-    91   => 'termPad',
-    92   => 'frameRelayMPI',
-    93   => 'x213',
-    94   => 'adsl',
-    95   => 'radsl',
-    96   => 'sdsl',
-    97   => 'vdsl',
-    98   => 'iso88025CRFPInt',
-    99   => 'myrinet',
-    100  => 'voiceEM',
-    101  => 'voiceFXO',
-    102  => 'voiceFXS',
-    103  => 'voiceEncap',
-    104  => 'voiceOverIp',
-    105  => 'atmDxi',
-    106  => 'atmFuni',
-    107  => 'atmIma',
-    108  => 'pppMultilinkBundle',
-    109  => 'ipOverCdlc',
-    110  => 'ipOverClaw',
-    111  => 'stackToStack',
-    112  => 'virtualIpAddress',
-    113  => 'mpc',
-    114  => 'ipOverAtm',
-    115  => 'iso88025Fiber',
-    116  => 'tdlc',
-    117  => 'gigabitEthernet',
-    118  => 'hdlc',
-    119  => 'lapf',
-    120  => 'v37',
-    121  => 'x25mlp',
-    122  => 'x25huntGroup',
-    123  => 'transpHdlc',
-    124  => 'interleave',
-    125  => 'fast',
-    126  => 'ip',
-    127  => 'docsCableMaclayer',
-    128  => 'docsCableDownstream',
-    129  => 'docsCableUpstream',
-    130  => 'a12MppSwitch',
-    131  => 'tunnel',
-    132  => 'coffee',
-    133  => 'ces',
-    134  => 'atmSubInterface',
-    135  => 'l2vlan',
-    136  => 'l3ipvlan',
-    137  => 'l3ipxvlan',
-    138  => 'digitalPowerline',
-    139  => 'mediaMailOverIp',
-    140  => 'dtm',
-    141  => 'dcn',
-    142  => 'ipForward',
-    143  => 'msdsl',
-    144  => 'ieee1394',
-    145  => 'if-gsn',
-    146  => 'dvbRccMacLayer',
-    147  => 'dvbRccDownstream',
-    148  => 'dvbRccUpstream',
-    149  => 'atmVirtual',
-    150  => 'mplsTunnel',
-    151  => 'srp',
-    152  => 'voiceOverAtm',
-    153  => 'voiceOverFrameRelay',
-    154  => 'idsl',
-    155  => 'compositeLink',
-    156  => 'ss7SigLink',
-    157  => 'propWirelessP2P',
-    158  => 'frForward',
-    159  => 'rfc1483',
-    160  => 'usb',
-    161  => 'ieee8023adLag',
-    162  => 'bgppolicyaccounting',
-    163  => 'frf16MfrBundle',
-    164  => 'h323Gatekeeper',
-    165  => 'h323Proxy',
-    166  => 'mpls',
-    167  => 'mfSigLink',
-    168  => 'hdsl2',
-    169  => 'shdsl',
-    170  => 'ds1FDL',
-    171  => 'pos',
-    172  => 'dvbAsiIn',
-    173  => 'dvbAsiOut',
-    174  => 'plc',
-    175  => 'nfas',
-    176  => 'tr008',
-    177  => 'gr303RDT',
-    178  => 'gr303IDT',
-    179  => 'isup',
-    180  => 'propDocsWirelessMaclayer',
-    181 => 'propDocsWirelessDownstream',
-    182 => 'propDocsWirelessUpstream',
-    183 => 'hiperlan2',
-    184 => 'propBWAp2Mp',
-    185 => 'sonetOverheadChannel',
-    186 => 'digitalWrapperOverheadChannel',
-    187 => 'aal2',
-    188 => 'radioMAC',
-    189 => 'atmRadio',
-    190 => 'imt',
-    191 => 'mvl',
-    192 => 'reachDSL',
-    193 => 'frDlciEndPt',
-    194 => 'atmVciEndPt',
-    195 => 'opticalChannel',
-    196 => 'opticalTransport',
-    197 => 'propAtm',
-    198 => 'voiceOverCable',
-    199 => 'infiniband',
-    200 => 'teLink',
-    201 => 'q2931',
-    202 => 'virtualTg',
-    203 => 'sipTg',
-    204 => 'sipSig',
-    205 => 'docsCableUpstreamChannel',
-    206 => 'econet',
-    207 => 'pon155',
-    208 => 'pon622',
-    209 => 'bridge',
-    210 => 'linegroup',
-    211 => 'voiceEMFGD',
-    212 => 'voiceFGDEANA',
-    213 => 'voiceDID',
-    214 => 'mpegTransport',
-    215 => 'sixToFour',
-    216 => 'gtp',
-    217 => 'pdnEtherLoop1',
-    218 => 'pdnEtherLoop2',
-    219 => 'opticalChannelGroup',
-    220 => 'homepna',
-    221 => 'gfp',
-    222 => 'ciscoISLvlan',
-    223 => 'actelisMetaLOOP',
-    224 => 'fcipLink',
-    225 => 'rpr',
-    226 => 'qam',
-    227 => 'lmp',
-    228 => 'cblVectaStar',
-    229 => 'docsCableMCmtsDownstream',
-    230 => 'adsl2',
-    231 => 'macSecControlledIF',
-    232 => 'macSecUncontrolledIF',
-    233 => 'aviciOpticalEther',
-    234 => 'atmbond',
-    235 => 'voiceFGDOS',
-    236 => 'mocaVersion1',
-    237 => 'ieee80216WMAN',
-    238 => 'adsl2plus',
-    239 => 'dvbRcsMacLayer',
-    240 => 'dvbTdm',
-    241 => 'dvbRcsTdma',
-    242 => 'x86Laps',
-    243 => 'wwanPP',
-    244 => 'wwanPP2',
-    245 => 'voiceEBS',
-    246 => 'ifPwType',
-    247 => 'ilan',
-    248 => 'pip',
-    249 => 'aluELP',
-    250 => 'gpon',
-    251 => 'vdsl2',
-    252 => 'capwapDot11Profile',
-    253 => 'capwapDot11Bss',
-    254 => 'capwapWtpVirtualRadio',
-    255 => 'bits',
-    256 => 'docsCableUpstreamRfPort',
-    257 => 'cableDownstreamRfPort',
-    258 => 'vmwareVirtualNic',
-    259 => 'ieee802154',
-    260 => 'otnOdu',
-    261 => 'otnOtu',
-    262 => 'ifVfiType',
-    263 => 'g9981',
-    264 => 'g9982',
-    265 => 'g9983',
-    266 => 'aluEpon',
-    267 => 'aluEponOnu',
-    268 => 'aluEponPhysicalUni',
-    269 => 'aluEponLogicalLink',
-    270 => 'aluGponOnu',
-    271 => 'aluGponPhysicalUni',
-    272 => 'vmwareNicTeam',
-);
-our %SNMP_IFTYPE = ( %_SNMP_IFTYPE, reverse(%_SNMP_IFTYPE) );
 
 =head1 SSH METHODS
 
@@ -1540,14 +1086,14 @@ sub extra_ntcip
     $make = 'vaisala';
   }
 
-  my $ret = $self->snmp_get({
+  my $ret = $self->snmpget({
       globalMaxModules => '.1.3.6.1.4.1.1206.4.2.6.1.2.0'
       });
   dump('ret', $ret);
   if ($ret && $ret->{globalMaxModules}) {
     $extra = [];
     foreach (1..$ret->{globalMaxModules}) {
-      my $mod = $self->snmp_get({
+      my $mod = $self->snmpget({
           moduleNumber     => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.1.$_",
           moduleDeviceNode => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.2.$_",
           moduleMake       => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.3.$_",
@@ -1568,7 +1114,7 @@ sub extra_ntcip
 
 =head2 get_sysinfo()
 
-Returns the a hashref with OIDs as keys and the results of snmp_get() as
+Returns the a hashref with OIDs as keys and the results of snmpget() as
 values.
 
 =cut
@@ -1583,7 +1129,7 @@ sub get_sysinfo
       #sysName     => '1.3.6.1.2.1.1.5.0',
       #sysLocation => '1.3.6.1.2.1.1.6.0',
   );
-  my $sysInfo = $self->snmp_get(\%OIDS);
+  my $sysInfo = $self->snmpget(\%OIDS);
   if ($sysInfo && keys %$sysInfo && defined $sysInfo->{sysObjectID}) {
     return $sysInfo;
   }
