@@ -1,21 +1,19 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/Monitoring/LiveStatus.pm
-# @brief    Wrapper class for the check_mk LiveStatus API
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::Monitoring::LiveStatus;
 
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
+
 use Carp;
 use Encode;
+use IO::Socket::UNIX;
 use JSON qw(decode_json);
 use Params::Validate qw(:all);
-use IO::Socket::UNIX;
 
 =head1 NAME
 
@@ -110,14 +108,14 @@ sub new
   my $sock;
   if ($self->{host}) {
     $sock = IO::Socket::INET->new(PeerAddr => $self->{host},
-      PeerPort => $self->{port},
-      Proto    => 'tcp');
+        PeerPort => $self->{port},
+        Proto    => 'tcp');
     croak("Failed to open ".$self->{host}.":".$self->{port}."; ".$!)
-    unless (defined $sock and $sock->connected());
+      unless (defined $sock and $sock->connected());
   } else {
     $sock = IO::Socket::UNIX->new(Peer=>$self->{socket}, Type=>SOCK_STREAM);
     croak("Failed to open ".$self->{socket}."; ".$!)
-    unless (defined $sock and $sock->connected());
+      unless (defined $sock and $sock->connected());
   }
   $self->{sock} = $sock;
 
@@ -148,7 +146,8 @@ Include query options as needed.
 
 =cut
 
-sub get {
+sub get
+{
   my $self  = shift or confess("Misssing SELF parameter");
   my $query = shift or confess("Misssing QUERY parameter");
 
@@ -156,11 +155,11 @@ sub get {
     unless (defined $self->{sock} and $self->{sock}->connected());
 
   $query .= "\n".
-            "OutputFormat: json\n".
-            "KeepAlive: on\n".
-            "ResponseHeader: fixed16\n".
-            "Localtime: ".time()."\n".
-            "\n";
+    "OutputFormat: json\n".
+    "KeepAlive: on\n".
+    "ResponseHeader: fixed16\n".
+    "Localtime: ".time()."\n".
+    "\n";
 
   print {$self->{sock}} encode('utf-8' => $query)
     or croak("Failed to send query; $!");
@@ -203,7 +202,8 @@ Returns a hash reference for the record or UNDEF if no record found.
 
 =cut
 
-sub get1 {
+sub get1
+{
   my $self  = shift or confess("Misssing SELF parameter");
   my $query = shift or confess("Misssing QUERY parameter");
 
@@ -218,7 +218,8 @@ Shorthand for get1() to retrieve one host record by name.
 
 =cut
 
-sub get_host {
+sub get_host
+{
   my $self = shift or confess("Misssing SELF parameter");
   my $host = shift or confess("Misssing HOST parameter");
 
@@ -234,14 +235,15 @@ description.
 
 =cut
 
-sub get_service {
+sub get_service
+{
   my $self    = shift or confess("Misssing SELF parameter");
   my $host    = shift or confess("Misssing HOST parameter");
   my $service = shift or confess("Misssing SERVICE parameter");
 
   return ($self->get1("GET services\n".
-                      "Filter: host_name = $host\n".
-                      "Filter: description = $service"))[0];
+          "Filter: host_name = $host\n".
+          "Filter: description = $service"))[0];
 }
 
 =head1 SEE ALSO
@@ -291,5 +293,5 @@ Paul Dugas may be contacted at the addresses below:
 
 1; # End of Dugas::LiveStatus
 
-# =============================================================================
-# vim: set et sw=2 ts=2 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

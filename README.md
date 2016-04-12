@@ -14,13 +14,13 @@ The following Perl modules are included:
 * **Dugas::LiveStatus** - Wrapper for the [LiveStatus] [LiveStatus URL] API.
 * **Dugas::Logger** - Simple diagnostic logging framework.
 * **Dugas::Maximo** - Wrapper for the [Maximo REST] [Maximo REST URL] API.
-* **Dugas::Nagios** - Nagios deployment paths and such.  (Should move to Dugas::Nagios::Util.)
-* **Dugas::Nagios::Plugin** - Custom version of [Nagios::Plugin] [Nagios::Plugin URL]
+* **Dugas::Monitoring** - Nagios deployment paths and such.  (Should move to Dugas::Monitoring::Util.)
+* **Dugas::Monitoring::Plugin** - Custom version of [Monitoring::Plugin] [Monitoring::Plugin URL]
 * **Dugas::Util** - Catch-all for anything that didn't fit elsewhere.
 
 [LiveStatus URL]: https://mathias-kettner.de/checkmk_livestatus.html
 [Maximo REST URL]: http://www-01.ibm.com/support/knowledgecenter/SSLKT6_7.5.0.5/com.ibm.mif.doc/gp_intfrmwk/rest_api/c_rest_overview.html?lang=en
-[Nagios::Plugin URL]: http://search.cpan.org/dist/Nagios-Plugin/lib/Nagios/Plugin.pm
+[Monitoring::Plugin URL]: http://search.cpan.org/dist/Monitoring-Plugin/lib/Monitoring/Plugin.pm
 
 CONTENTS
 --------

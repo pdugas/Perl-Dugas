@@ -1,11 +1,8 @@
 #!perl -T
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     t/Dugas::Monitoring.t
-# @brief    Unit-Tests
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use 5.006;
 use strict;
@@ -15,5 +12,8 @@ use Test::More;
 plan tests => 1;
 
 BEGIN {
-    use_ok( 'Dugas::Monitoring' ) || print "Bail out!\n";
+    use_ok('Dugas::Monitoring') || print "Bail out!\n";
 }
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

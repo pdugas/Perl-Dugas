@@ -1,3 +1,8 @@
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
+
 Name:		perl-Dugas
 Version:	0.1
 Release:	1%{?dist}
@@ -67,3 +72,6 @@ make RELEASE_TESTING=1 test
 - Initial 0.1 release.
 * Mon Mar 28 2016 Paul Dugas <paul@dugas.cc>
 - Initial Specfile.
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

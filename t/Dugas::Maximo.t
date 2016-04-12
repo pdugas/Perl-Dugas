@@ -1,11 +1,8 @@
 #!perl -T
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     t/Dugas::Maximo.t
-# @brief    Unit-Tests
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use 5.006;
 use strict;
@@ -15,7 +12,7 @@ use FindBin;
 
 plan tests => 7;
 
-use_ok( 'Dugas::Maximo' ) || print "Bail out!\n";
+use_ok('Dugas::Maximo') || print "Bail out!\n";
 
 SKIP: {
 
@@ -28,9 +25,9 @@ SKIP: {
   # simple no-dependency way to get credentials.  not terribly pretty.
   { package MAXIMO; do($CONF); }
 
-  my $mx = new Dugas::Maximo( host => $MAXIMO::MAXIMO{host},
+  my $mx = new Dugas::Maximo(host => $MAXIMO::MAXIMO{host},
                               user => $MAXIMO::MAXIMO{user},
-                              pass => $MAXIMO::MAXIMO{pass} );
+                              pass => $MAXIMO::MAXIMO{pass});
   ok($mx, 'ctor')
     or diag explain $mx;
 
@@ -60,16 +57,16 @@ SKIP: {
     or diag explain $loc;
 
   # create and SR
-  my $sr = $mx->post( 'mbo', 'sr', 
-                      LOCATION                    => $locs[1]{LOCATIONSID},
-                      ORGID                       => $locs[1]{ORGID},
-                      SITEID                      => $locs[1]{SITEID},
-                      SRSOURCE                    => 'NAGIOS',
-                      DESCRIPTION                 => 'TESTING',
-                      DESCRIPTION_LONGDESCRIPTION => '<i>Please Ignore.</i>' );
+  my $sr = $mx->post('mbo', 'sr', 
+                     LOCATION                    => $locs[1]{LOCATIONSID},
+                     ORGID                       => $locs[1]{ORGID},
+                     SITEID                      => $locs[1]{SITEID},
+                     SRSOURCE                    => 'NAGIOS',
+                     DESCRIPTION                 => 'TESTING',
+                     DESCRIPTION_LONGDESCRIPTION => '<i>Please Ignore.</i>');
   ok($sr, 'post(MBO, SR, LOCATION=>...)')
     or diag explain $sr;
 }
 
-# =============================================================================
-# vim: set et ts=2 sw=2 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

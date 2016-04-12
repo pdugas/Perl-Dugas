@@ -1,11 +1,8 @@
 #!perl -T
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     t/Dugas::Logger.t
-# @brief    Unit-Tests
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use 5.006;
 use strict;
@@ -24,3 +21,6 @@ BEGIN {
     is(Dugas::Logger::level(), Dugas::Logger::LOG_DEBUG(),
        'default level now DEBUG');
 }
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

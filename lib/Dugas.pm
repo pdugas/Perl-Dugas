@@ -1,10 +1,7 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas.pm
-# @brief    Top-level module
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas;
 
@@ -14,7 +11,7 @@ use warnings FATAL => 'all';
 
 =head1 NAME
 
-Dugas - The Dugas Family of Perl Modules
+Dugas - The Dugas Enterprises Perl Modules
 
 =head1 VERSION
 
@@ -70,5 +67,5 @@ Paul Dugas may be contacted at the addresses below:
 
 1; # End of Dugas
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # vim: set et sw=4 ts=4 :

@@ -1,10 +1,7 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/App.pm
-# @brief    A simple application class handling program options and logging.
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::App;
 
@@ -47,8 +44,8 @@ ENDLICENSE
 
   use Dugas::App;
 
-  my $app = new Dugas::App( conf => 'eg.conf',
-                            opts => [ { spec=>'foo' } ] );
+  my $app = new Dugas::App(conf => 'eg.conf',
+                           opts => [ { spec=>'foo' } ]);
   
   if ($app->conf('eg', 'foo', 'foo')) { 
       ...
@@ -72,31 +69,27 @@ my $basedir;
 # Process parameters passed when the module is use'd.
 sub import
 {
-  my $name = shift; # module name, ignored
+    my $name = shift; # module name, ignored
 
-  # $dir will be our initial BASEDIR, two levels up from where this file lives
-  # since this module typically is not installed in the usual place.
-  my ($vol, $dir, $file) = File::Spec->splitpath(__FILE__);
-  $dir = Cwd::realpath(File::Spec->catdir($dir, (File::Spec->updir()) x 2));
+    # $dir will be our initial BASEDIR, two levels up from where this file lives
+    # since this module typically is not installed in the usual place.
+    my ($vol, $dir, $file) = File::Spec->splitpath(__FILE__);
+    $dir = Cwd::realpath(File::Spec->catdir($dir, (File::Spec->updir()) x 2));
 
-  # process parameters.
-  my $opts = validate(@_, {BASEDIR => {type => SCALAR, default => $dir}});
-  $basedir = $opts->{BASEDIR};
+    # process parameters.
+    my $opts = validate(@_, {BASEDIR => {type => SCALAR, default => $dir}});
+    $basedir = $opts->{BASEDIR};
 
-  # Warn if BASEDIR doesn't seem right.
-  if (-d $basedir) {
-    notice("Dugas::App BASEDIR ($basedir) may not be correct.")
-      unless (-d ETCDIR());
-  } else {
-    notice("Dugas::App BASEDIR ($basedir) doesn't exist.")
-  }
+    # Warn if BASEDIR doesn't seem right.
+    if (-d $basedir) {
+        notice("Dugas::App BASEDIR ($basedir) may not be correct.")
+            unless (-d ETCDIR());
+    } else {
+        notice("Dugas::App BASEDIR ($basedir) doesn't exist.")
+    }
 }
 
-my %DEFAULT = (
-  logger => {
-    logfile => undef
-  }
-);
+my %DEFAULT = (logger => {logfile => undef});
 
 =head1 CONSTANTS
 
@@ -162,90 +155,90 @@ Specify a prefix string for environment variables.
 
 sub new
 {
-  my $class = shift or confess('Missing CLASS parameter');
+    my $class = shift or confess('Missing CLASS parameter');
 
-  my ($prog, $path, $ext) = fileparse($main::0);
+    my ($prog, $path, $ext) = fileparse($main::0);
 
-  my $prefix = uc($prog); $prefix =~ s/[^0-9A-Z]/_/g;
+    my $prefix = uc($prog); $prefix =~ s/[^0-9A-Z]/_/g;
 
-  my $obj = validate( @_, {
-    version => { default => $Dugas::App::VERSION },
-    license => { default => $Dugas::App::LICENSE },
-    conf    => { type => SCALAR, default => 'dugas.conf' },
-    opts    => { type => ARRAYREF, default => [] },
-    prefix  => { type => SCALAR, default => $prefix },
-  });
+    my $obj = validate( @_, {
+            version => { default => $Dugas::App::VERSION },
+            license => { default => $Dugas::App::LICENSE },
+            conf    => { type => SCALAR, default => 'dugas.conf' },
+            opts    => { type => ARRAYREF, default => [] },
+            prefix  => { type => SCALAR, default => $prefix },
+            });
 
-  bless $obj, $class;
+    bless $obj, $class;
 
-  ($obj->{prog}, $obj->{path}, $obj->{ext}) = ($prog, $path, $ext);
+    ($obj->{prog}, $obj->{path}, $obj->{ext}) = ($prog, $path, $ext);
 
-  $obj->{opts} = [ @{$obj->{opts}},
-    { spec    => 'usage|?' },
-    { spec    => 'help|h' },
-    { spec    => 'version|V' },
-    { spec    => 'verbose|v+', default => 0 },
-    { spec    => 'quiet|q' },
-    { spec    => 'config|C=s' },
-    { spec    => 'log|L=s', default => $obj->conf('logger', 'logfile') },
-  ];
+    $obj->{opts} = [ @{$obj->{opts}},
+        { spec    => 'usage|?' },
+        { spec    => 'help|h' },
+        { spec    => 'version|V' },
+        { spec    => 'verbose|v+', default => 0 },
+        { spec    => 'quiet|q' },
+        { spec    => 'config|C=s' },
+        { spec    => 'log|L=s', default => $obj->conf('logger', 'logfile') },
+        ];
 
-  $obj->{optvals} = {};
+    $obj->{optvals} = {};
 
-  for (@{$obj->{opts}}) {
-    my $name = $_->{spec}; $name =~ s/[|=+!:].*$//;
-    my $default = $_->{default};
-    my $envvar = uc($obj->{prefix}.'_'.$name);
-    debug("EnvVar for $name option is $envvar.");
-    $default = $ENV{$envvar} if exists $ENV{$envvar};
-    debug("Default for $name option is ".($default||'UNDEF').".");
-    next unless defined $default;
-    $obj->{optvals}{$name} = $default;
-  }
-
-  GetOptions($obj->{optvals}, map { $_->{spec} } @{$obj->{opts}})
-    or pod2usage(-exitval => -1);
-  dump('Dugas::App::obj', $obj);
-
-  my $msg = sprintf("%s %s\n%s\n",
-                    $obj->{prog},  $obj->{version}, $obj->{license});
-  pod2usage(-msg => $msg, -exitval => 0, -verbose => 1)
-    if $obj->{optvals}{usage};
-  pod2usage(-exitval => 0, -verbose => 2)
-    if $obj->{optvals}{help};
-  if ($obj->{optvals}{version}) { print $msg; exit(0); }
-
-  my $lvl = Dugas::Logger::level();
-  $lvl += $obj->{optvals}{verbose} if $obj->{optvals}{verbose};
-  $lvl = Dugas::Logger::LOG_ERROR if $obj->{optvals}{quiet};
-  Dugas::Logger::level($lvl);
-
-  $obj->{config} = {};
-  if (my $filename = $obj->{optvals}{config} || $obj->{conf}) {
-    $filename =~ s/%s/$obj->{prog}/;
-    $filename = File::Spec->catfile(ETCDIR, $filename);
-    if (-r $filename) {
-      debug("Loading config from $filename.");
-      tie %{$obj->{config}}, 'Config::IniFiles',
-          (-file       => $filename, -fallback   => 'GLOBAL',
-           -nocase     => 1,         -allowempty => 1);
-      fatal("Failed to load $filename; ".
-            join(' ', @Config::IniFiles::errors))
-        unless $obj->{config};
-    } else {
-      debug("Not loading config from $filename; missing or inaccessible.");
+    for (@{$obj->{opts}}) {
+        my $name = $_->{spec}; $name =~ s/[|=+!:].*$//;
+        my $default = $_->{default};
+        my $envvar = uc($obj->{prefix}.'_'.$name);
+        debug("EnvVar for $name option is $envvar.");
+        $default = $ENV{$envvar} if exists $ENV{$envvar};
+        debug("Default for $name option is ".($default||'UNDEF').".");
+        next unless defined $default;
+        $obj->{optvals}{$name} = $default;
     }
-  }
 
-  # Open the log file if indicated.
-  if (my $filename = $obj->conf('logger', 'logfile', 'log')) {
-    $filename =~ s/%s/$obj->{prog}/;
-    $filename =~ s/%d/getpid()/e;
-    debug("Opening $filename for logging.");
-    Dugas::Logger::open($filename);
-  }
+    GetOptions($obj->{optvals}, map { $_->{spec} } @{$obj->{opts}})
+        or pod2usage(-exitval => -1);
+    dump('Dugas::App::obj', $obj);
 
-  return $obj;
+    my $msg = sprintf("%s %s\n%s\n",
+            $obj->{prog},  $obj->{version}, $obj->{license});
+    pod2usage(-msg => $msg, -exitval => 0, -verbose => 1)
+        if $obj->{optvals}{usage};
+    pod2usage(-exitval => 0, -verbose => 2)
+        if $obj->{optvals}{help};
+    if ($obj->{optvals}{version}) { print $msg; exit(0); }
+
+    my $lvl = Dugas::Logger::level();
+    $lvl += $obj->{optvals}{verbose} if $obj->{optvals}{verbose};
+    $lvl = Dugas::Logger::LOG_ERROR if $obj->{optvals}{quiet};
+    Dugas::Logger::level($lvl);
+
+    $obj->{config} = {};
+    if (my $filename = $obj->{optvals}{config} || $obj->{conf}) {
+        $filename =~ s/%s/$obj->{prog}/;
+        $filename = File::Spec->catfile(ETCDIR, $filename);
+        if (-r $filename) {
+            debug("Loading config from $filename.");
+            tie %{$obj->{config}}, 'Config::IniFiles',
+                (-file       => $filename, -fallback   => 'GLOBAL',
+                 -nocase     => 1,         -allowempty => 1);
+            fatal("Failed to load $filename; ".
+                    join(' ', @Config::IniFiles::errors))
+                unless $obj->{config};
+        } else {
+            debug("Not loading config from $filename; missing or inaccessible.");
+        }
+    }
+
+    # Open the log file if indicated.
+    if (my $filename = $obj->conf('logger', 'logfile', 'log')) {
+        $filename =~ s/%s/$obj->{prog}/;
+        $filename =~ s/%d/getpid()/e;
+        debug("Opening $filename for logging.");
+        Dugas::Logger::open($filename);
+    }
+
+    return $obj;
 }
 
 =head1 METHODS
@@ -257,11 +250,12 @@ Returns the value of the named program option.  Returns the default value
 
 =cut
 
-sub opt($$) {
-  my $obj = shift or confess('Missing SELF parameter');
-  my $opt = shift or confess('Missing OPT parameter');
-  my $ret = $obj->{optvals}{lc($opt)};
-  return $ret;
+sub opt
+{
+    my $obj = shift or confess('Missing SELF parameter');
+    my $opt = shift or confess('Missing OPT parameter');
+    my $ret = $obj->{optvals}{lc($opt)};
+    return $ret;
 }
 
 =head2 $app->conf( SECTION, KEY [,OPTION] )
@@ -272,22 +266,23 @@ the value for the entry is returned.
 
 =cut
 
-sub conf($$$;$) {
-  my $obj = shift or confess('Missing SELF parameter');
-  my $sec = shift or confess('Missing SEC parameter');
-  my $key = shift or confess('Missing KEY parameter');
-  my $opt = shift;
-  $sec = lc($sec);
-  $key = lc($key);
-  my $ret = undef;
-  if ($opt && defined $obj->{optvals}{lc($opt)}) {
-    $ret = $obj->{optvals}{lc($opt)};
-  } elsif (exists $obj->{config}{$sec} && exists $obj->{config}{$sec}{$key}) {
-    $ret = $obj->{config}{$sec}{$key};
-  } elsif (exists $DEFAULT{$sec}) {
-    $ret = $DEFAULT{$sec}{$key};
-  }
-  return $ret;
+sub conf
+{
+    my $obj = shift or confess('Missing SELF parameter');
+    my $sec = shift or confess('Missing SEC parameter');
+    my $key = shift or confess('Missing KEY parameter');
+    my $opt = shift;
+    $sec = lc($sec);
+    $key = lc($key);
+    my $ret = undef;
+    if ($opt && defined $obj->{optvals}{lc($opt)}) {
+        $ret = $obj->{optvals}{lc($opt)};
+    } elsif (exists $obj->{config}{$sec} && exists $obj->{config}{$sec}{$key}) {
+        $ret = $obj->{config}{$sec}{$key};
+    } elsif (exists $DEFAULT{$sec}) {
+        $ret = $DEFAULT{$sec}{$key};
+    }
+    return $ret;
 }
 
 =head1 PROGRAM OPTIONS
@@ -415,5 +410,5 @@ Paul Dugas may be contacted at the addresses below:
 
 1; # End of Dugas::App
 
-# =============================================================================
-# vim: set et sw=2 ts=2 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

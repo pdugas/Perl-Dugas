@@ -1,19 +1,17 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/Logger.pm
-# @brief    Dugas::Logger Perl Module
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::Logger;
 
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use POSIX qw(strftime);
+
 use Carp qw(confess);
 use Data::Dumper; $Data::Dumper::Sortkeys = 1;
+use POSIX qw(strftime);
 
 =head1 NAME
 
@@ -75,13 +73,13 @@ user requests.  Retries should be logged as warnings.
 
 =item NOTICE
 
-Notices are logged to report normal but significant conditions like detailed
-progress, use of default values, etc.
+Information messages are logged to report progress performing a user requested
+action.
 
 =item INFO
 
-Information messages are logged to report progress performing a user requested
-action.
+Notices are logged to report normal but significant conditions like detailed
+progress, use of default values, etc.
 
 =item DEBUG
 
@@ -153,9 +151,9 @@ Open a file to record logged output.  Messages will be appeanded to the file.
 =cut
 
 sub open {
-  my $filename = shift or confess "Missing FILENAME parameter";
-  Dugas::Logger::close() if $log;
-  open($log, '>>', $filename) or fatal("open(>> $filename) failed; $!");
+    my $filename = shift or confess "Missing FILENAME parameter";
+    Dugas::Logger::close() if $log;
+    open($log, '>>', $filename) or fatal("open(>> $filename) failed; $!");
 }
 
 =head2 Dugas::Logger::close ( )
@@ -165,10 +163,10 @@ Close the output log file if it's open.
 =cut
 
 sub close {
-  if ($log) {
-    close($log);
-    undef $log;
-  }
+    if ($log) {
+        close($log);
+        undef $log;
+    }
 }
 
 =head2 Dugas::Logger::level ( [LEVEL] )
@@ -180,9 +178,9 @@ to get the current level without changing it.  The default level is I<WARN>.
 
 sub level
 {
-  my $newLvl = shift;
-  $lvl = $newLvl || $lvl;
-  return $lvl;
+    my $newLvl = shift;
+    $lvl = $newLvl || $lvl;
+    return $lvl;
 }
 
 =head1 LOGGING SUBROUTINES
@@ -264,11 +262,11 @@ Dumps the given VALUE to the log as a DATA message.  Uses B<Data::Dumper>.
 
 sub dump 
 {
-  return unless $lvl >= LOG_DATA;
-  my $key = shift or confess('Missing NAME parameter');
-  my $val = shift;
-  Dugas::Logger::warn("Ignoring extra parameters; @_") if @_;
-  _logger('DATA', Data::Dumper->Dump([$val],[$key]));
+    return unless $lvl >= LOG_DATA;
+    my $key = shift or confess('Missing NAME parameter');
+    my $val = shift;
+    Dugas::Logger::warn("Ignoring extra parameters; @_") if @_;
+    _logger('DATA', Data::Dumper->Dump([$val],[$key]));
 }
 
 =head2 hexdump ( NAME, VALUE )
@@ -279,27 +277,27 @@ Dumps the given VALUE in binary format to the log as a DATA message.
 
 sub hexdump 
 {
-  return unless $lvl >= LOG_DATA;
-  my $name  = shift or confess('Missing NAME parameter');
-  my $value = shift or confess('Missing VALUE parameter');
-  Dugas::Logger::warn("Ignoring extra parameters; @_") if @_;
-  my ($pos, @bytes, $fmt, $msg) = (0, undef, undef, '');
-  foreach my $data (unpack("a16"x(length($value)/16)."a*", $value)) {
-    my $len = length($data);
-    if ($len == 16) {
-      @bytes = unpack('N4', $data);
-      $fmt="  0x%08x (%05d)   %08x %08x %08x %08x   %s\n";
-    } else {
-      @bytes = unpack('C*', $data);
-      $_ = sprintf "%2.2x", $_ for @bytes;
-      push(@bytes, '  ') while $len++ < 16;
-      $fmt="  0x%08x (%05d)   %s%s%s%s %s%s%s%s %s%s%s%s %s%s%s%s   %s\n";
+    return unless $lvl >= LOG_DATA;
+    my $name  = shift or confess('Missing NAME parameter');
+    my $value = shift or confess('Missing VALUE parameter');
+    Dugas::Logger::warn("Ignoring extra parameters; @_") if @_;
+    my ($pos, @bytes, $fmt, $msg) = (0, undef, undef, '');
+    foreach my $data (unpack("a16"x(length($value)/16)."a*", $value)) {
+        my $len = length($data);
+        if ($len == 16) {
+            @bytes = unpack('N4', $data);
+            $fmt="  0x%08x (%05d)   %08x %08x %08x %08x   %s\n";
+        } else {
+            @bytes = unpack('C*', $data);
+            $_ = sprintf "%2.2x", $_ for @bytes;
+            push(@bytes, '  ') while $len++ < 16;
+            $fmt="  0x%08x (%05d)   %s%s%s%s %s%s%s%s %s%s%s%s %s%s%s%s   %s\n";
+        }
+        $data =~ tr/\0-\37\177-\377/./;
+        $msg .= sprintf($fmt,$pos,$pos,@bytes,$data);
+        $pos += 16;
     }
-    $data =~ tr/\0-\37\177-\377/./;
-    $msg .= sprintf($fmt,$pos,$pos,@bytes,$data);
-    $pos += 16;
-  }
-  _logger('DATA', "\$$name = \n$msg");
+    _logger('DATA', "\$$name = \n$msg");
 }
 
 =head2 Dugas::Logger::_logger ( LEVEL, FORMAT [, PARAMS] )
@@ -311,14 +309,14 @@ directly.  Consider it private and subject to change.
 
 sub _logger
 {
-  my $level  = shift or confess('Missing LEVEL parameter');
-  my $format = shift or confess('Missing FORMAT parameter');
-  chomp $format; chomp $format;
-  if (@_) { $format = sprintf("$format", map {defined $_ ? $_ : 'UNDEF'} @_); }
-  $format = '['.$level.'] '.$format."\n";
-  print(STDERR $format);
-  print({$log} strftime(TIMESTAMP_FORMAT, localtime()), $format)
-    if defined $log;
+    my $level  = shift or confess('Missing LEVEL parameter');
+    my $format = shift or confess('Missing FORMAT parameter');
+    chomp $format; chomp $format;
+    if (@_) { $format = sprintf("$format", map {defined $_ ? $_ : 'UNDEF'} @_); }
+    $format = '['.$level.'] '.$format."\n";
+    print(STDERR $format);
+    print({$log} strftime(TIMESTAMP_FORMAT, localtime()), $format)
+        if defined $log;
 }
 
 =head1 ENVIRONMENT VARIABLES
@@ -371,3 +369,6 @@ Paul Dugas may be contacted at the addresses below:
 =cut
 
 1; # End of Dugas::Logger
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

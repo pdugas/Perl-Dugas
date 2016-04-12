@@ -1,3 +1,8 @@
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
+
 # Version control files and dirs.
 \bRCS\b
 \bCVS\b
@@ -26,3 +31,6 @@ debugsources.list
 debugfiles.list
 debuglinks.list
 elfbins.list
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

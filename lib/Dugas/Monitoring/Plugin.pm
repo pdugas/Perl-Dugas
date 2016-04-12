@@ -1,10 +1,7 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/Monitoring/Plugin.pm
-# @brief    Custom version of the standard Monitoring::Plugin with our additions.
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::Monitoring::Plugin;
 
@@ -129,130 +126,133 @@ a number of program options and the I<ssh()> method.
 
 sub new
 {
-  my $class = shift;
+    my $class = shift;
 
-  my %opts = @_;
+    my %opts = @_;
 
-  # Add/cleanup options
-  $opts{license} = sprintf('Copyright (C) 2013-%d Paul Dugas.  '.
-                           'All rights reserved.', 1900+(localtime)[5])
-    unless $opts{license};
-  $opts{version} = $VERSION
-    unless $opts{version};
-  $opts{extra} = ""
-    unless $opts{extra};
-  $opts{usage} = "Usage: %s [-v] [-C config] [-L log] [-H hostname]\n"
-    unless $opts{usage};
+    # Add/cleanup options
+    $opts{license} = sprintf('Copyright (C) 2013-%d Paul Dugas.  '.
+                             'All rights reserved.', 1900+(localtime)[5])
+        unless $opts{license};
+    $opts{version} = $VERSION
+        unless $opts{version};
+    $opts{extra} = ""
+        unless $opts{extra};
+    $opts{usage} = "Usage: %s [-v] [-C config] [-L log] [-H hostname]\n"
+        unless $opts{usage};
 
-  # The "local" parameter indicates no --hostname option
-  my $local;
-  if (exists $opts{'local'}) {
-    $local = $opts{'local'};
-    delete $opts{'local'};
-  }
+    # The "local" parameter indicates no --hostname option
+    my $local;
+    if (exists $opts{'local'}) {
+        $local = $opts{'local'};
+        delete $opts{'local'};
+    }
 
-  # The "prev" parameter indicates we should setup handling previous PERFDATA.
-  my $prev;
-  if (exists $opts{prev}) {
-    $prev = $opts{prev};
-    delete $opts{prev};
-    if ($prev) {
-      $opts{usage} .= <<ENDUSAGE;
+    # The "prev" parameter indicates we should setup handling previous PERFDATA.
+    my $prev;
+    if (exists $opts{prev}) {
+        $prev = $opts{prev};
+        delete $opts{prev};
+        if ($prev) {
+            $opts{usage} .= <<ENDUSAGE;
        [-P <previous perf data from Nagios, i.e. \$SERVICEPERFDATA\$>] 
        [-T <previous time from Nagios, i.e. \$LASTSERVICECHECK\$>]
 ENDUSAGE
+        }
     }
-  }
 
-  # The "snmp" parameter indicates we should setup for SNMP.
-  my $snmp;
-  if (exists $opts{snmp}) {
-    $snmp = $opts{snmp};
-    delete $opts{snmp};
-    if ($snmp) {
-      $opts{usage} .= <<ENDUSAGE;
+    # The "snmp" parameter indicates we should setup for SNMP.
+    my $snmp;
+    if (exists $opts{snmp}) {
+        $snmp = $opts{snmp};
+        delete $opts{snmp};
+        if ($snmp) {
+            $opts{usage} .= <<ENDUSAGE;
        [-c snmp_community] [--snmpport port] 
        [--protocol version|-1|-2|-2c|-3] 
        [-l seclevel] [-u secname] 
        [-a authproto] [-A authpasswd] 
        [-x privproto] [-x privpasswd]
 ENDUSAGE
+        }
     }
-  }
 
-  # The "ssh" parameter indicates we should setup for SSH.
-  my $ssh;
-  if (exists $opts{ssh}) {
-    $ssh = $opts{ssh};
-    delete $opts{ssh};
-    if ($ssh) {
-      $opts{usage} .= <<ENDUSAGE;
+    # The "ssh" parameter indicates we should setup for SSH.
+    my $ssh;
+    if (exists $opts{ssh}) {
+        $ssh = $opts{ssh};
+        delete $opts{ssh};
+        if ($ssh) {
+            $opts{usage} .= <<ENDUSAGE;
        [--sshport port] [-u username] [-p password] 
        [-k keypath] [-K keyphrase]
 ENDUSAGE
+        }
     }
-  }
 
-  # Save the "config" setting and don't pass it to the base class.
-  my $config = $opts{config} || $FindBin::Bin.'/../etc/nagios.conf';
-  delete $opts{config};
+    # Save the "config" setting and don't pass it to the base class.
+    my $config = $opts{config} || $FindBin::Bin.'/../etc/nagios.conf';
+    delete $opts{config};
 
-  # Construct Monitoring::Plugin baseclass
-  my $self = $class->SUPER::new(%opts);
+    # Construct Monitoring::Plugin baseclass
+    my $self = $class->SUPER::new(%opts);
 
-  # Save these
-  $self->{local} = $local;
-  $self->{prev} = $prev;
-  $self->{snmp} = $snmp;
-  $self->{ssh} = $ssh;
+    # Save these
+    $self->{local} = $local;
+    $self->{prev} = $prev;
+    $self->{snmp} = $snmp;
+    $self->{ssh} = $ssh;
 
-  # Setup config
-  my $DEFAULT_INI = <<END_DEFAULT_INI;
+    # Long-Output starts undefined
+    $self->{output} = undef;
+
+    # Setup config
+    my $DEFAULT_INI = <<END_DEFAULT_INI;
 [snmp]
-  community=public
-  protocol=1
-  port=161
-  seclevel=noAuthNoPriv
-  secname=
-  authproto=MD5
-  authpass=
-  privproto=DES
-  privpass=
+    community=public
+    protocol=1
+    port=161
+    seclevel=noAuthNoPriv
+    secname=
+    authproto=MD5
+    authpass=
+    privproto=DES
+    privpass=
 [ssh]
-  port=22
-  username=
-  password=
-  keypath=
-  keyphrase=
+    port=22
+    username=
+    password=
+    keypath=
+    keyphrase=
 END_DEFAULT_INI
-  $self->{ini} = Config::IniFiles->new( -file => \$DEFAULT_INI );
-  if ($config && -r $config) {
-    $self->{ini} = Config::IniFiles->new( -file => $config,
-                                          -import => $self->{ini},
-                                          -fallback => 'GLOBAL',
-                                          -nocase => 1,
-                                          -allowempty => 1 );
-    die("Failed to load $config; ".
-        join(' ', @Config::IniFiles::errors)) unless $self->{ini};
-  }
+    $self->{ini} = Config::IniFiles->new( -file => \$DEFAULT_INI );
+    if ($config && -r $config) {
+        $self->{ini} = Config::IniFiles->new( -file => $config,
+                -import => $self->{ini},
+                -fallback => 'GLOBAL',
+                -nocase => 1,
+                -allowempty => 1 );
+        die("Failed to load $config; ".
+                join(' ', @Config::IniFiles::errors)) unless $self->{ini};
+    }
 
-  # Add the standard arguments
-  $self->add_arg(spec     => 'manual|manpage|man',
-                 help     => "--man, --manpage, --manual\n".
-                             "   Display the manpage");
-  $self->add_arg(spec     => 'config|C=s',
-                 help     => "-C, --config=STRING\n".
-                             "   Runtime config file");
-  $self->add_arg(spec     => 'log|L=s',
-                 help     => "-L, --log=FILENAME\n".
-                             "   Log file");
-  $self->add_arg(spec     => 'hostname|H=s',
-                 help     => "-H, --hostname=STRING\n".
-                             "   Hostname or IP address")
-    unless $local;
+    # Add the standard arguments
+    $self->add_arg(spec     => 'manual|manpage|man',
+                   help     => "--man, --manpage, --manual\n".
+                               "   Display the manpage");
+    $self->add_arg(spec     => 'config|C=s',
+                   help     => "-C, --config=STRING\n".
+                               "   Runtime config file");
+    $self->add_arg(spec     => 'log|L=s',
+                   help     => "-L, --log=FILENAME\n".
+                               "   Log file");
+    $self->add_arg(spec     => 'hostname|H=s',
+                   help     => "-H, --hostname=STRING\n".
+                               "   Hostname or IP address")
+        unless $local;
 
-  # Done
-  return $self;
+    # Done
+    return $self;
 }
 
 =head1 METHODS
@@ -266,171 +266,162 @@ logic to loading and validating program options.
 
 sub getopts
 {
-  my $self = shift;
+    my $self = shift;
 
-  # Add the PREVIOUS arguments
-  #   - Using -P after seeing a handful of existing plugins use it.
-  if ($self->{prev}) {
-    $self->add_arg(spec     => 'prevperfdata|prev|P=s',
-                   help     => "-P, --prev, --prevperfdata=PERFDATA\n".
-                               "   Previous PERFDATA from Nagios, ".
-                               "i.e. \$SERVICEPERFDATA\$",
-                   default  => '');
-  }
-
-  # Add the SNMP arguments
-  if ($self->{snmp}) {
-    $self->add_arg(spec     => 'community|c=s',
-                   help     => "-c, --community=STRING\n".
-                               "   SNMP v1 or v2c community (default: ".
-                               $self->conf('snmp','community').")",
-                   default  => $self->conf('snmp','community'));
-    $self->add_arg(spec     => 'snmpport=i',
-                   help     => "--snmpport=INTEGER\n".
-                               "   SNMP port number (default: ".
-                               $self->conf('snmp','port').")",
-                   default  => $self->conf('snmp','port'));
-    $self->add_arg(spec     => 'protocol|snmpver=s',
-                   help     => "--protocol=[1|2|2c|3]\n".
-                               "   SNMP protocol version (default: 1)");
-    $self->add_arg(spec     => '1',
-                   help     => "-1\n".
-                               "   Use SNMPv1 (default)");
-    $self->add_arg(spec     => '2c|2C|2',
-                   help     => "-2, -2c\n".
-                               "   Use SNMPv2c");
-    $self->add_arg(spec     => '3',
-                   help     => "-3\n".
-                               "   Use SNMPv3");
-    $self->add_arg(spec     => 'seclevel|l=s',
-                   help     => "-l, --seclevel=".
-                               "[noAuthNoPriv|authNoPriv|authPriv]\n".
-                               "   SNMPv3 securityLevel (default: ".
-                               $self->conf('snmp','seclevel').")",
-                   default  => $self->conf('snmp','seclevel'));
-    $self->add_arg(spec     => 'secname|snmpuser|u=s',
-                   help     => "-u, --snmpuser, --secname=USERNAME\n".
-                               "   SNMPv3 username (default: ".
-                               $self->conf('snmp','secname').")",
-                   default  => $self->conf('snmp','secname'));
-    $self->add_arg(spec     => 'authproto|a=s',
-                   help     => "-a, --authproto=[MD5|SHA]\n".
-                               "   SNMPv3 authentication protocol (default: ".
-                               $self->conf('snmp','authproto').")",
-                   default  => $self->conf('snmp','authproto'));
-    $self->add_arg(spec     => 'authpass|A=s',
-                   help     => "-A, --authpass=PASSWORD\n".
-                               "   SNMPv3 authentication password (default: ".
-                               $self->conf('snmp','authpass').")",
-                   default  => $self->conf('snmp','authpass'));
-    $self->add_arg(spec     => 'privproto|x=s',
-                   help     => "-x, --privproto=[DES|AES]\n".
-                               "   SNMPv3 privacy protocol (default: ".
-                               $self->conf('snmp','privproto').")",
-                   default  => $self->conf('snmp','privproto'));
-    $self->add_arg(spec     => 'privpass|X=s',
-                   help     => "-X, --privpass=PASSWORD\n".
-                               "   SNMPv3 privacy password (default: ".
-                               $self->conf('snmp','privpass').")",
-                   default  => $self->conf('snmp','privpass'));
-  }
-
-  # Add the SSH arguments
-  if ($self->{ssh}) {
-    $self->add_arg(spec     => 'sshuser=s',
-                   help     => "--sshuser=STRING\n".
-                               "   SSH username (default: ".
-                               ($self->conf('ssh','username')||$ENV{USER}).")",
-                   default  => $self->conf('ssh','username')||$ENV{USER});
-    $self->add_arg(spec     => 'sshport=s',
-                   help     => "--sshport=INT\n".
-                               "   SSH port (default: ".
-                               $self->conf('ssh','port').")",
-                   default  => $self->conf('ssh','port'));
-    $self->add_arg(spec     => 'sshpass=s',
-                   help     => "-sshpass=STRING\n".
-                               "   SSH password",
-                   default  => $self->conf('ssh','password'));
-    $self->add_arg(spec     => 'sshkeypath|keypath=s',
-                   help     => "--keypath=FILENAME\n".
-                               "   SSH private key file (default: ".
-                               $self->conf('ssh','keypath').")",
-                   default  => $self->conf('ssh','keypath'));
-    $self->add_arg(spec     => 'sshkeyphrase|keyphrase=s',
-                   help     => "--keyphrase=PASSPHRASE\n".
-                               "   Passphrase to unlock the key (default: ".
-                               $self->conf('ssh','keyphrase').")",
-                   default  => $self->conf('ssh','keyphrase'));
-  }
-
-  $self->SUPER::getopts();
-
-  pod2usage(-exitval => 0, -verbose => 2)
-    if ($self->opts->manual);
-
-  $self->nagios_die("Missing --hostname option")
-    if (!$self->{local} && !defined $self->opts->hostname);
-
-  # Load CONFIG.
-  if ($self->opts->config) {
-    die("Can't find or read ".$self->opts->config)
-      unless -r $self->opts->config;
-    $self->{ini} = Config::IniFiles->new( -file => $self->opts->config,
-                                          -import => $self->{ini},
-                                          -fallback => 'GLOBAL',
-                                          -nocase => 1,
-                                          -allowempty => 1 );
-    die("Failed to load ".$self->opts->config."; ".
-        join(' ', @Config::IniFiles::errors)) unless $self->{ini};
-  }
-
-  # Setup logger.
-  my $lvl = Dugas::Logger::level();
-  $lvl += $self->opts->verbose || $self->conf('logger', 'verbose', 0);
-  Dugas::Logger::level($lvl);
-
-  if ($self->{snmp}) {
-    # Check PROTOCOL.
-    $self->{proto} = undef;
-    if (defined $self->opts->protocol) {
-      if ($self->opts->protocol =~ /^\s*1\s*$/) {
-        $self->{proto} = 1;
-      } elsif ($self->opts->protocol =~ /^\s*2c?\s*$/i) {
-        $self->{proto} = 2;
-      } elsif ($self->opts->protocol =~ /^\s*3\s*$/i) {
-        $self->{proto} = 3;
-      }
+    if ($self->{prev}) {
+        $self->add_arg(spec     => 'prevperfdata|prev|P=s',
+                       help     => "-P, --prev, --prevperfdata=PERFDATA\n".
+                                   "   Previous PERFDATA from Nagios, ".
+                                   "i.e. \$SERVICEPERFDATA\$",
+                       default  => '');
     }
-    if (defined $self->opts->{'1'}) {
-      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
-            "Not both.") if defined $self->{proto};
-      $self->{proto} = 1;
-    }
-    if (defined $self->opts->{'2'}) {
-      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
-            "Not both.") if defined $self->{proto};
-      $self->{proto} = 2;
-    }
-    if (defined $self->opts->{'2c'}) {
-      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
-            "Not both.") if defined $self->{proto};
-      $self->{proto} = 2;
-    }
-    if (defined $self->opts->{'3'}) {
-      fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
-            "Not both.") if defined $self->{proto};
-      $self->{proto} = 3;
-    }
-    $self->{proto} = 1 unless $self->{proto};
-  }
 
-  # Setup logfile.
-  if (my $log = $self->opts->log || $self->conf('logger', 'logfile')) {
-    $log =~ s/%s/$FindBin::Script/;
-    $log =~ s/%d/getpid()/e;
-    #debug("Opening $log for logging.");
-    Dugas::Logger::open($log);
-  }
+    if ($self->{snmp}) {
+        $self->add_arg(spec     => 'community|c=s',
+                       help     => "-c, --community=STRING\n".
+                                   "   SNMP v1 or v2c community (default: ".
+                                   $self->conf('snmp','community').")",
+                       default  => $self->conf('snmp','community'));
+        $self->add_arg(spec     => 'snmpport=s',
+                       help     => "--snmpport=INTEGER\n".
+                                   "   SNMP port number (default: ".
+                                   $self->conf('snmp','port').")",
+                       default  => $self->conf('snmp','port'));
+        $self->add_arg(spec     => 'protocol|snmpver=s',
+                       help     => "--protocol=[1|2|2c|3]\n".
+                                   "   SNMP protocol version (default: 1)");
+        $self->add_arg(spec     => '1',
+                       help     => "-1\n".
+                                   "   Use SNMPv1 (default)");
+        $self->add_arg(spec     => '2c|2C|2',
+                       help     => "-2, -2c\n".
+                                   "   Use SNMPv2c");
+        $self->add_arg(spec     => '3',
+                       help     => "-3\n".
+                                   "   Use SNMPv3");
+        $self->add_arg(spec     => 'seclevel|l=s',
+                       help     => "-l, --seclevel=".
+                                   "[noAuthNoPriv|authNoPriv|authPriv]\n".
+                                   "   SNMPv3 securityLevel (default: ".
+                                   $self->conf('snmp','seclevel').")",
+                       default  => $self->conf('snmp','seclevel'));
+        $self->add_arg(spec     => 'secname|snmpuser|u=s',
+                       help     => "-u, --snmpuser, --secname=USERNAME\n".
+                                   "   SNMPv3 username (default: ".
+                                   $self->conf('snmp','secname').")",
+                       default  => $self->conf('snmp','secname'));
+        $self->add_arg(spec     => 'authproto|a=s',
+                       help     => "-a, --authproto=[MD5|SHA]\n".
+                                   "   SNMPv3 authentication protocol (default: ".
+                                   $self->conf('snmp','authproto').")",
+                       default  => $self->conf('snmp','authproto'));
+        $self->add_arg(spec     => 'authpass|A=s',
+                       help     => "-A, --authpass=PASSWORD\n".
+                                   "   SNMPv3 authentication password (default: ".
+                                   $self->conf('snmp','authpass').")",
+                       default  => $self->conf('snmp','authpass'));
+        $self->add_arg(spec     => 'privproto|x=s',
+                       help     => "-x, --privproto=[DES|AES]\n".
+                                   "   SNMPv3 privacy protocol (default: ".
+                                   $self->conf('snmp','privproto').")",
+                       default  => $self->conf('snmp','privproto'));
+        $self->add_arg(spec     => 'privpass|X=s',
+                       help     => "-X, --privpass=PASSWORD\n".
+                                   "   SNMPv3 privacy password (default: ".
+                                   $self->conf('snmp','privpass').")",
+                       default  => $self->conf('snmp','privpass'));
+    }
+
+    if ($self->{ssh}) {
+        $self->add_arg(spec     => 'sshuser=s',
+                       help     => "--sshuser=STRING\n".
+                                   "   SSH username (default: ".
+                                   ($self->conf('ssh','username')||$ENV{USER}).")",
+                       default  => $self->conf('ssh','username')||$ENV{USER});
+        $self->add_arg(spec     => 'sshport=s',
+                       help     => "--sshport=INT\n".
+                                   "   SSH port (default: ".
+                                   $self->conf('ssh','port').")",
+                       default  => $self->conf('ssh','port'));
+        $self->add_arg(spec     => 'sshpass=s',
+                       help     => "-sshpass=STRING\n".
+                                   "   SSH password",
+                       default  => $self->conf('ssh','password'));
+        $self->add_arg(spec     => 'sshkeypath|keypath=s',
+                       help     => "--keypath=FILENAME\n".
+                                   "   SSH private key file (default: ".
+                                   $self->conf('ssh','keypath').")",
+                       default  => $self->conf('ssh','keypath'));
+        $self->add_arg(spec     => 'sshkeyphrase|keyphrase=s',
+                       help     => "--keyphrase=PASSPHRASE\n".
+                                   "   Passphrase to unlock the key (default: ".
+                                   $self->conf('ssh','keyphrase').")",
+                       default  => $self->conf('ssh','keyphrase'));
+    }
+
+    $self->SUPER::getopts();
+
+    pod2usage(-exitval => 0, -verbose => 2)
+        if ($self->opts->manual);
+
+    $self->nagios_die("Missing --hostname option")
+        if (!$self->{local} && !defined $self->opts->hostname);
+
+    if ($self->opts->config) {
+        die("Can't find or read ".$self->opts->config)
+            unless -r $self->opts->config;
+        $self->{ini} = Config::IniFiles->new( -file => $self->opts->config,
+                -import => $self->{ini},
+                -fallback => 'GLOBAL',
+                -nocase => 1,
+                -allowempty => 1 );
+        die("Failed to load ".$self->opts->config."; ".
+                join(' ', @Config::IniFiles::errors)) unless $self->{ini};
+    }
+
+    my $lvl = Dugas::Logger::level();
+    $lvl += $self->opts->verbose || $self->conf('logger', 'verbose', 0);
+    Dugas::Logger::level($lvl);
+
+    if ($self->{snmp}) {
+        $self->{proto} = undef;
+        if (defined $self->opts->protocol) {
+            if ($self->opts->protocol =~ /^\s*1\s*$/) {
+                $self->{proto} = 1;
+            } elsif ($self->opts->protocol =~ /^\s*2c?\s*$/i) {
+                $self->{proto} = 2;
+            } elsif ($self->opts->protocol =~ /^\s*3\s*$/i) {
+                $self->{proto} = 3;
+            }
+        }
+        if (defined $self->opts->{'1'}) {
+            fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+                  "Not both.") if defined $self->{proto};
+            $self->{proto} = 1;
+        }
+        if (defined $self->opts->{'2'}) {
+            fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+                  "Not both.") if defined $self->{proto};
+            $self->{proto} = 2;
+        }
+        if (defined $self->opts->{'2c'}) {
+            fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+                  "Not both.") if defined $self->{proto};
+            $self->{proto} = 2;
+        }
+        if (defined $self->opts->{'3'}) {
+            fatal("Please use --protocol or -1|-2|-2c|-3 to set SNMP version. ".
+                  "Not both.") if defined $self->{proto};
+            $self->{proto} = 3;
+        }
+        $self->{proto} = 1 unless $self->{proto};
+    }
+
+    if (my $log = $self->opts->log || $self->conf('logger', 'logfile')) {
+        $log =~ s/%s/$FindBin::Script/;
+        $log =~ s/%d/getpid()/e;
+        Dugas::Logger::open($log);
+    }
 }
 
 =head1 PROGRAM OPTIONS
@@ -549,52 +540,72 @@ B<DEFAULT> value if the key or section don't exist.
 
 sub conf
 {
-  my $self    = shift or confess("Missing SELF parameter");
-  my $section = shift or confess("Missing SECTION parameter");
-  my $key     = shift or confess("Missing KEY parameter");
-  my $default = shift;
+    my $self    = shift or confess("Missing SELF parameter");
+    my $section = shift or confess("Missing SECTION parameter");
+    my $key     = shift or confess("Missing KEY parameter");
+    my $default = shift;
 
-  return $self->{ini}->val($section, $key, $default);
+    return $self->{ini}->val($section, $key, $default);
 }
 
 =head1 BASECLASS METHODS
 
-The following B<Monitoring::Plugin> methods are being enhanced.
+The following B<Monitoring::Plugin> methods are being extended.
 
-=head2 plugin_exit( CODE, [MESSAGE, [OUTPUT] ) )
+=head2 plugin_exit( CODE, MESSAGE, [LONG_TEXT] )
 
-We add the optional B<OUTPUT> parameter used to send the given string to the
-output as the LONGSERVICEOUTPUT text.
+We've extended the baseclass version to add the lines from C<add_output()>.
 
 =cut
 
 sub plugin_exit
 {
-  my $self = shift or confess('Missing SELF parameter');
-  my $code = shift; $code = uc $code unless $code =~ /^\d+$/;
-  my $msg  = shift;
-  my $long = shift;
+    my $self = shift or confess('Missing SELF parameter');
+    my $code = shift; $code = uc($code) unless $code =~ /^\d+$/;
+    my $msg  = shift;
+    my $long = shift;
 
-  $msg .= "\n".$long if $long;
+    $msg .= "\n".join("\n", @{$self->{output}}) if $self->{output};
+    $msg .= "\n".$long                          if $long;
 
-  return $self->SUPER::plugin_exit($code, $msg);
+    return $self->SUPER::plugin_exit($code, $msg);
 }
 
 =head2 check_messages( [OPTIONS] )
 
-We add join=>', ' and join_all=>' and ' as default OPTIONs.
+We add join=>', ' and join_all=>' and ' as default OPTIONs.  See
+L<Monitoring::Plugin::Functions> for details on the available OPTIONs.
 
 =cut
 
 sub check_messages
 {
-  my $self = shift or confess('Missing SELF parameter');
-  my $opts = {@_};
+    my $self = shift or confess('Missing SELF parameter');
+    my $opts = {@_};
 
-  $opts->{join}     = ', '    unless exists $opts->{join};
-  $opts->{join_all} = ' and ' unless exists $opts->{join_all};
+    $opts->{join}     = ', '    unless exists $opts->{join};
+    $opts->{join_all} = ' and ' unless exists $opts->{join_all};
 
-  return $self->SUPER::check_messages( %{$opts} );
+    return $self->SUPER::check_messages( %{$opts} );
+}
+
+=head1 LONG-OUTPUT SUPPORT
+
+Support for adding the I<LONG TEXT> lines described in the plugin API at
+http://assets.nagios.com/downloads/nagioscore/docs/nagioscore/4/en/pluginapi.html
+
+=head2 add_output( LONG_TEXT, [LONG_TEXT, ...] )
+
+Add one or more I<LONG_TEXT> lines to the plugin output.
+
+=cut
+
+sub add_output
+{
+    my $self = shift or confess('Missing SELF parameter');
+    return unless scalar(@_);
+    $self->{output} = [] unless $self->{output};
+    push @{$self->{output}}, @_;
 }
 
 =head1 SNMP SUPPORT
@@ -611,87 +622,101 @@ and runtime configuration.
 
 sub snmp
 {
-  my $self = shift or confess('Missing SELF parameter');
+    my $self = shift or confess('Missing SELF parameter');
+    if ($self->{snmp}) {
+        $self->{snmpSession} = SNMP::Session->new($self->snmp_opts())
+            unless $self->{snmpSession};
+    } else {
+        error("Plugin not configured for SNMP!");
+    }
+    return $self->{snmpSession};
+}
 
-  unless ($self->{snmp}) {
-    error("Plugin not configured for SNMP!");
-    return undef;
-  }
+=head2 snmp_opts()
 
-  unless ($self->{snmpSession}) {
+Returns a hashref for initializing an L<SNMP::Session> object.
 
-    my $dest = $self->opts->hostname;
-    if ($self->opts->snmpport =~ /^(tcp:)?(.*)$/i) { 
-      $dest = ($1//'')."$dest:$2"; 
+=cut
+
+sub snmp_opts
+{
+    my $self = shift or confess('Missing SELF parameter');
+
+    my %opts;
+
+    unless ($self->{snmp}) {
+        error("Plugin not configured for SNMP!");
+        return %opts;
     }
 
-    my %opts = (
-      DestHost    => $dest,
-      Version     => $self->{proto},
-      Timeout     => $self->opts->timeout * 1000000,
-      Retries     => 1,
-      RetryNoSuch => 1,
-      Community   => $self->opts->community,
-      SecLevel    => $self->opts->seclevel,
-      SecName     => $self->opts->secname,
-      AuthProto   => $self->opts->authproto,
-      AuthPass    => $self->opts->authpass,
-      PrivProto   => $self->opts->privproto,
-      PrivPass    => $self->opts->privpass,
-      UseEnums    => 1,
+    my $dest = $self->opts->hostname;
+    if ($self->opts->snmpport =~ /^((tcp|udp):)?(.*)$/i) { 
+        $dest = ($1//'')."$dest:$3"; 
+    }
+
+    %opts = (
+        DestHost    => $dest,
+        Version     => $self->{proto},
+        Timeout     => $self->opts->timeout * 1000000, # micro-seconds
+        RetryNoSuch => 1,
+        Community   => $self->opts->community,
+        SecLevel    => $self->opts->seclevel,
+        SecName     => $self->opts->secname,
+        AuthProto   => $self->opts->authproto,
+        AuthPass    => $self->opts->authpass,
+        PrivProto   => $self->opts->privproto,
+        PrivPass    => $self->opts->privpass,
+        UseEnums    => 1,
     );
 
     $opts{community} = $self->opts->community
-      if ($self->opts->community && $self->{proto} != 3);
+        if ($self->opts->community && $self->{proto} != 3);
 
     if ($self->{proto} == 3) {
 
-      fatal("Both --seclevel and --secname required for SNMPv3")
-        unless ($self->opts->seclevel && $self->opts->secname);
+        fatal("Both --seclevel and --secname required for SNMPv3")
+            unless ($self->opts->seclevel && $self->opts->secname);
 
-      $opts{username} = $self->opts->secname;
+        $opts{username} = $self->opts->secname;
 
-      fatal("Invalid --seclevel value; \"$self->opts->seclevel\"")
-        unless ($self->opts->seclevel =~ /^(no)?auth(no)?priv$/i);
-      my ($auth, $priv) = (!$1, !$2);
+        fatal("Invalid --seclevel value; \"$self->opts->seclevel\"")
+            unless ($self->opts->seclevel =~ /^(no)?auth(no)?priv$/i);
+        my ($auth, $priv) = (!$1, !$2);
 
-      if ($auth) {
-        fatal("Invalid --authproto value; \"$self->opts->authproto\"")
-          unless ($self->opts->authproto =~ /^(MD5|SHA)$/i);
-        $opts{authprotocol} = $self->opts->authproto;
+        if ($auth) {
+            fatal("Invalid --authproto value; \"$self->opts->authproto\"")
+                unless ($self->opts->authproto =~ /^(MD5|SHA)$/i);
+            $opts{authprotocol} = $self->opts->authproto;
 
-        fatal("Missing --authpass")
-          unless (defined $self->opts->authpass);
-        if ($self->opts->authpass =~ /^0x/) {
-          $opts{authkey} = $self->opts->authpass;
-        } else {
-          $opts{authpass} = $self->opts->authpass;
+            fatal("Missing --authpass")
+                unless (defined $self->opts->authpass);
+            if ($self->opts->authpass =~ /^0x/) {
+                $opts{authkey} = $self->opts->authpass;
+            } else {
+                $opts{authpass} = $self->opts->authpass;
+            }
         }
-      }
 
-      if ($priv) {
-        fatal("Invalid --privproto value; \"$self->opts->privproto\"")
-          unless ($self->opts->privproto =~ /^(DES|AES)$/i);
-        $opts{privprotocol} = $self->opts->privproto;
+        if ($priv) {
+            fatal("Invalid --privproto value; \"$self->opts->privproto\"")
+                unless ($self->opts->privproto =~ /^(DES|AES)$/i);
+            $opts{privprotocol} = $self->opts->privproto;
 
-        fatal("Missing --privpass")
-          unless (defined $self->opts->privpass);
-        if ($self->opts->privpass =~ /^0x/) {
-          $opts{privkey} = $self->opts->privpass;
-        } else {
-          $opts{privpass} = $self->opts->privpass;
+            fatal("Missing --privpass")
+                unless (defined $self->opts->privpass);
+            if ($self->opts->privpass =~ /^0x/) {
+                $opts{privkey} = $self->opts->privpass;
+            } else {
+                $opts{privpass} = $self->opts->privpass;
+            }
         }
-      }
 
-    } # if SNMPv3
+    }
 
-    my $snmp = new SNMP::Session(%opts);
-    $self->{snmpSession} = $snmp;
-  }
-  return $self->{snmpSession};
+    return %opts;
 }
 
-=head1 SSH METHODS
+=head1 SSH SUPPORT
 
 The following methods are enabled if the C<ssh> parameter was passed to the
 constructor.
@@ -705,35 +730,35 @@ and runtime configuration.
 
 sub ssh
 {
-  my $self = shift or confess('Missing SELF parameter');
+    my $self = shift or confess('Missing SELF parameter');
 
-  unless ($self->{ssh}) {
-    error("Plugin not configured for SSH!");
-    return undef;
-  }
-
-  unless ($self->{openssh}) {
-    my %opts = ();
-    $opts{port}       = $self->opts->sshport
-      if length $self->opts->sshport;
-    $opts{user}       = $self->opts->sshuser
-      if length $self->opts->sshuser;
-    $opts{password}   = $self->opts->sshpass
-      if length $self->opts->sshpass;
-    $opts{key_path}   = $self->opts->sshkeypath
-      if length $self->opts->sshkeypath;
-    $opts{passphrase} = $self->opts->sshkeyphrase
-      if length $self->opts->sshkeyphrase;
-    $opts{batch_mode} = 1; # don't prompt for passwords, just fail
-    my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
-    if ($ssh->error) {
-      $self->{openssh_error} = $ssh->error;
-      return undef;
+    unless ($self->{ssh}) {
+        error("Plugin not configured for SSH!");
+        return undef;
     }
-    $self->{openssh} = $ssh;
-    undef $self->{openssh_error};
-  }
-  return $self->{openssh};
+
+    unless ($self->{openssh}) {
+        my %opts = ();
+        $opts{port}       = $self->opts->sshport
+            if length $self->opts->sshport;
+        $opts{user}       = $self->opts->sshuser
+            if length $self->opts->sshuser;
+        $opts{password}   = $self->opts->sshpass
+            if length $self->opts->sshpass;
+        $opts{key_path}   = $self->opts->sshkeypath
+            if length $self->opts->sshkeypath;
+        $opts{passphrase} = $self->opts->sshkeyphrase
+            if length $self->opts->sshkeyphrase;
+        $opts{batch_mode} = 1; # don't prompt for passwords, just fail
+            my $ssh = new Net::OpenSSH($self->opts->hostname, %opts);
+        if ($ssh->error) {
+            $self->{openssh_error} = $ssh->error;
+            return undef;
+        }
+        $self->{openssh} = $ssh;
+        undef $self->{openssh_error};
+    }
+    return $self->{openssh};
 }
 
 =head2 ssh_error()
@@ -744,8 +769,8 @@ Returns the C<Net::OpenSSH::error> value from the last call to C<ssh()>.
 
 sub ssh_error
 {
-  my $self = shift or confess('Missing SELF parameter');
-  return $self->{openssh_error};
+    my $self = shift or confess('Missing SELF parameter');
+    return $self->{openssh_error};
 }
 
 =head2 ssh_system()
@@ -757,8 +782,8 @@ ssh() method.
 
 sub ssh_system
 {
-  my $self = shift or confess("Missing SELF parameter");
-  return $self->ssh()->system(@_);
+    my $self = shift or confess("Missing SELF parameter");
+    return $self->ssh()->system(@_);
 }
 
 =head2 ssh_capture()
@@ -770,8 +795,8 @@ the ssh() method.
 
 sub ssh_capture
 {
-  my $self = shift or confess("Missing SELF parameter");
-  return $self->ssh()->capture(@_);
+    my $self = shift or confess("Missing SELF parameter");
+    return $self->ssh()->capture(@_);
 }
 
 =head2 ssh_pipe()
@@ -783,16 +808,23 @@ ssh() method.
 
 sub ssh_pipe
 {
-  my $self = shift or confess("Missing SELF parameter");
-  return $self->ssh()->pipe_in(@_);
+    my $self = shift or confess("Missing SELF parameter");
+    return $self->ssh()->pipe_in(@_);
 }
 
-=head1 PREVIOUS DATA
+=head1 PREVIOUS PERFDATA
 
 The following methods provide access to performance data from the previous run
 of the plugin.  These are only avialble if the C<prev> parameter was passed
 to the constructor.  They rely on the C<--prevperfdata> parameter being
-provided on the command line.
+provided on the command line.  Typically, we create a command object in the
+monitoring system like below when deltas are to be reported.  The performance
+data from the previous time the service was checked will be available then.
+
+    define command {
+        command_name eg-check-foo
+        command_line $USER1$/eg/check-foo -H $HOSTADDRESS --prev '$SERVICEPERFDATA$'
+    }
 
 =head2 prev()
 
@@ -804,18 +836,17 @@ will be B<Monitoring::Plugin::Performance> objects.
 
 sub prev
 {
-  my $self = shift or confess('Missing SELF parameter');
+    my $self = shift or confess('Missing SELF parameter');
 
-  unless ($self->{prev}) {
-    error("Plugin not configured for PREV!");
-    return undef;
-  }
+    unless ($self->{prev}) {
+        error("Plugin not configured for PREV!");
+        return undef;
+    }
 
-  $self->{prevData}
-    = Dugas::Monitoring::Plugin::_parse_perfdata($self->opts->prevperfdata)
-    unless exists $self->{prevData};
+    $self->{prevData} = _parse_perfdata($self->opts->prevperfdata)
+        unless exists $self->{prevData};
 
-  return $self->{prevData};
+    return $self->{prevData};
 }
 
 =head1 JSON QUERY METHODS
@@ -859,10 +890,8 @@ query.  Returns C<undef> if the request fails.
 
 sub query_hostlist
 {
-  my $self = shift or confess('Missing SELF parameter');
-  return $self->_query(type=>QUERY_OBJECT,
-                       query=>'hostlist', 
-                       @_);
+    my $self = shift or confess('Missing SELF parameter');
+    return $self->_query(type=>QUERY_OBJECT, query=>'hostlist', @_);
 }
 
 =head2 $status = query_status_host( HOST, OPTIONS )
@@ -874,12 +903,10 @@ query.  Returns C<undef> if the request fails.
 
 sub query_status_host
 {
-  my $self = shift or confess('Missing SELF parameter');
-  my $host = shift or confess('Missing HOST parameter');
-  return $self->_query(type=>QUERY_STATUS,
-                       query=>'host', 
-                       hostname=>$host,
-                       @_);
+    my $self = shift or confess('Missing SELF parameter');
+    my $host = shift or confess('Missing HOST parameter');
+    return $self->_query(type=>QUERY_STATUS, query=>'host', hostname=>$host, 
+                         @_);
 }
 
 =head2 $status = query_status_service( HOST, SERVICE, OPTIONS )
@@ -891,251 +918,54 @@ query.  Returns C<undef> if the request fails.
 
 sub query_status_service
 {
-  my $self    = shift or confess('Missing SELF parameter');
-  my $host    = shift or confess('Missing HOST parameter');
-  my $service = shift or confess('Missing SERVICE parameter');
-  return $self->_query(type=>QUERY_STATUS,
-                       query=>'service', 
-                       hostname=>$host,
-                       servicedescription=>$service,
-                       @_);
+    my $self    = shift or confess('Missing SELF parameter');
+    my $host    = shift or confess('Missing HOST parameter');
+    my $service = shift or confess('Missing SERVICE parameter');
+    return $self->_query(type=>QUERY_STATUS, query=>'service', hostname=>$host,
+                         servicedescription=>$service, @_);
 }
 
+# Internal utility to perform a Nagios JSON Query
 sub _query
 {
-  my $self = shift or confess('Missing SELF parameter');
-dump('opts', \@_);
-  my %opts = ( formatoptions=>'enumerate', @_ );
+    my $self = shift or confess('Missing SELF parameter');
+    my %opts = ( formatoptions=>'enumerate', @_ );
 
-  my $host = $opts{host} // QUERY_HOST; delete $opts{host};
-  my $base = $opts{base} // QUERY_BASE; delete $opts{base};
-  my $user = $opts{user};               delete $opts{host};
-  my $pass = $opts{pass};               delete $opts{host};
-  my $type = $opts{type};               delete $opts{type};
+    my $host = $opts{host} // QUERY_HOST; delete $opts{host};
+    my $base = $opts{base} // QUERY_BASE; delete $opts{base};
+    my $user = $opts{user};               delete $opts{host};
+    my $pass = $opts{pass};               delete $opts{host};
+    my $type = $opts{type};               delete $opts{type};
 
-  confess('Missing TYPE parameter') unless $type;
+    confess('Missing TYPE parameter') unless $type;
 
-  my $url = 'http://'.$host.$base.$type;
-     $url = URI->new($url);
-     $url->query_form(%opts);
-  my $ua  = LWP::UserAgent->new;
-  my $req = HTTP::Request->new(GET => $url);
-     $req->authorization_basic($user||'', $pass||'') if ($user || $pass);
+    my $url = 'http://'.$host.$base.$type;
+    $url = URI->new($url);
+    $url->query_form(%opts);
+    my $ua  = LWP::UserAgent->new;
+    my $req = HTTP::Request->new(GET => $url);
+    $req->authorization_basic($user||'', $pass||'') if ($user || $pass);
 
-  my $res = $ua->request($req);
-  if ($res->is_error) {
-    error("Query failed; ", $res->status_line);
-    return undef;
-  }
+    my $res = $ua->request($req);
+    if ($res->is_error) {
+        error("Query failed; ", $res->status_line);
+        return undef;
+    }
 
-  my $json = decode_json $res->content;
-  dump('json', $json);
-  unless (defined $json &&
-          exists $json->{result}{type_code} && 
-          $json->{result}{type_code} == 0) {
-    error("Query failed; ".$json->{result}{message});
-    return undef;
-  }
+    my $ret = decode_json $res->content;
+    unless (defined $ret &&
+            exists $ret->{result}{type_code} && 
+            $ret->{result}{type_code} == 0) {
+        error("Query failed; ".$ret->{result}{message});
+        return undef;
+    }
 
-  return $json;
+    return $ret;
 }
 
 =head1 OTHER METHODS
 
-=head2 $make = probe_host()
-
-=head2 ($make, $sysinfo, $extra) = probe_host()
-
-The B<probe_host()> method tries to identify the make (i.e. manufacturer or
-vendor name) of a host.  In scalar context, a string is returned.  In array
-context, a hashref containing the SNMP sysInfo and an extra result that may
-be defined and contain additional results from the probe.
-
-This routine only functions if the C<snmp> parameter was passed to the
-constructor and the C<local> parameter was not.  This routine relies on SNMP.
-
-=cut
-
-my %MAKES = (
-  adtran    => { oid=>'1.3.6.1.4.1.664'                          },
-  apc       => { oid=>'1.3.6.1.4.1.318'                          },
-  axis      => { oid=>'1.3.6.1.4.1.368'                          },
-  aztec     => { oid=>'1.3.6.1.4.1.4651'                         },
-  brother   => { oid=>'1.3.6.1.4.1.2435'                         },
-  cisco     => { oid=>'1.3.6.1.4.1.9'                            },
-  coretec   => { oid=>'1.3.6.1.4.1.14979'                        },
-  digi      => { oid=>'1.3.6.1.4.1.332'                          },
-  digipower => { oid=>'1.3.6.1.4.1.17420'                        },
-  foundry   => { oid=>'1.3.6.1.4.1.1991'                         },
-  freebsd   => { oid=>'1.3.6.1.4.1.12325'                        },
-  juniper   => { oid=>'1.3.6.1.4.1.2636'                         },
-  minuteman => { oid=>'1.3.6.1.4.1.2254'                         },
-  moxa      => { oid=>'1.3.6.1.4.1.8691'                         },
-  netgear   => { oid=>'1.3.6.1.4.1.4526'                         },
-  netsnmp   => { oid=>'1.3.6.1.4.1.8072', extra=>\&extra_netsnmp },
-  ntcip     => { oid=>'1.3.6.1.4.1.1206', extra=>\&extra_ntcip   },
-  optelecom => { oid=>'1.3.6.1.4.1.17534'                        },
-  pronet    => { oid=>'1.3.6.1.4.1.1723'                         },
-  sierra    => { oid=>'1.3.6.1.4.1.20542'                        },
-  ucdsnmp   => { oid=>'1.3.6.1.4.1.2021', extra=>\&extra_ucdsnmp },
-  vermac    => { oid=>'1.3.6.1.4.1.16892'                        },
-  yealink   => { oid=>'1.3.6.1.4.1.37459'                        },
-);
-
-sub probe_host
-{
-  my $self = shift or confess('Missing SELF parameter');
-  $self->plugin_exit(Monitoring::Plugin::UNKNOWN, "probe_host() only supported".
-                     "when SNMP is enabled and --hostname is set.")
-    unless $self->{snmp} && !$self->{local} && $self->opts->hostname;
-  
-  my ($make, $sysInfo, $extra) = (undef, $self->get_sysinfo(), undef);
-  if ($sysInfo) {
-    dump("sysInfo", $sysInfo);
-    foreach (keys %MAKES) {
-      if (Net::SNMP::oid_base_match($MAKES{$_}{oid}, $sysInfo->{sysObjectID})) {
-        debug("sysObjectID matches $_");
-        ($make, $extra) = ($_, undef);
-        if (exists $MAKES{$_}{extra}) {
-          my $ex = $MAKES{$_}{extra}; # 
-            ($make, $extra) = $self->$ex($sysInfo);
-        }
-        last;
-      }
-    }
-  } else {
-    debug("Failed to get sysInfo.");
-  }
-
-  # This is a little hack to detect some NTCIP-only gear.
-  ($make, $extra) = $self->extra_ntcip($sysInfo) unless $make;
-
-  if (wantarray) {
-    return ($make, $sysInfo, $extra);
-  } else {
-    return $make;
-  }
-}
-
-# These extra_*() routines are used to refine the MAKE result of probe_host()
-# when the sysObjectID value is generic.  The idea is to look at additional
-# data in the given SYSINFO objects or to probe the device further.
-
-=head2 ($make, $extra) = extra_netsnmp( $sysinfo )
-
-Refine the MAKE result of probe_host() when the sysObjectID value is "netsnmp".
-
-=cut
-
-sub extra_netsnmp
-{
-  my $self    = shift or confess('Missing SELF parameter');
-  my $sysInfo = shift or confess('Missing SYSINFO parameter');
-
-  my ($make, $extra) = ('netsnmp', undef);
-
-  if ($sysInfo->{sysDescr} =~ /vcx6400d/i) { $make = 'coretec'; }
-
-  return ($make, $extra);
-}
-
-=head2 ($make, $extra) = extra_ucdsnmp( $sysinfo )
-
-Refine the MAKE result of probe_host() when the sysObjectID value is "ucdsnmp".
-
-=cut
-
-sub extra_ucdsnmp 
-{
-  my $self    = shift or confess('Missing SELF parameter');
-  my $sysInfo = shift or confess('Missing SYSINFO parameter');
-
-  my ($make, $extra);
-
-  if ($sysInfo->{sysDescr} =~ /m0n0wall/i) {
-    $make = 'm0n0wall'; 
-  } else {
-    my $homepage = $self->get_http('/');
-    if ($homepage =~ /\bComtrol Corporation\b/i) {
-      $make = 'comtrol'; $extra = $homepage;
-    }
-  }
-
-  return ($make, $extra);
-}
-
-=head2 ($make, $extra) = extra_ntcip( $sysinfo )
-
-Refine the MAKE result of probe_host() when the sysObjectID value is NTCIP.
-
-=cut
-
-sub extra_ntcip
-{
-  my $self    = shift or confess('Missing SELF parameter');
-  my $sysInfo = shift;
-
-  my ($make, $extra);
-
-  if ($sysInfo && $sysInfo->{sysDescr} =~ /Daktronics/i) {
-    $make = 'daktronics';
-    return ($make, $extra);
-  }
-
-  if ($sysInfo && $sysInfo->{sysDescr} =~ /Vaisala/i) {
-    $make = 'vaisala';
-  }
-
-  my $ret = $self->snmpget({
-      globalMaxModules => '.1.3.6.1.4.1.1206.4.2.6.1.2.0'
-      });
-  dump('ret', $ret);
-  if ($ret && $ret->{globalMaxModules}) {
-    $extra = [];
-    foreach (1..$ret->{globalMaxModules}) {
-      my $mod = $self->snmpget({
-          moduleNumber     => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.1.$_",
-          moduleDeviceNode => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.2.$_",
-          moduleMake       => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.3.$_",
-          moduleModel      => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.4.$_",
-          moduleVersion    => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.5.$_",
-          moduleType       => ".1.3.6.1.4.1.1206.4.2.6.1.3.1.6.$_" });
-      next unless $mod && keys %$mod;
-      push @$extra, $mod;
-      
-      $make = 'ledstar' if (!$make && $mod->{moduleMake} =~ /\bLEDSTAR\b/i);
-      $make = 'vermac'  if (!$make && $mod->{moduleMake} =~ /\bVER-?MAC\b/i);
-      $make = 'vaisala' if (!$make && $mod->{moduleMake} =~ /\bVAISALA\b/i);
-    }
-  }
-
-  return ($make, $extra);
-}
-
-=head2 get_sysinfo()
-
-Returns the a hashref with OIDs as keys and the results of snmpget() as
-values.
-
-=cut
-
-sub get_sysinfo
-{
-  my $self = shift or confess('Missing SELF parameter');
-  my %OIDS = (
-      sysDescr    => '1.3.6.1.2.1.1.1.0',
-      sysObjectID => '1.3.6.1.2.1.1.2.0',
-      #sysContact  => '1.3.6.1.2.1.1.4.0',
-      #sysName     => '1.3.6.1.2.1.1.5.0',
-      #sysLocation => '1.3.6.1.2.1.1.6.0',
-  );
-  my $sysInfo = $self->snmpget(\%OIDS);
-  if ($sysInfo && keys %$sysInfo && defined $sysInfo->{sysObjectID}) {
-    return $sysInfo;
-  }
-  #debug("Failed to get sysInfo");
-  return undef;
-}
+A handful of other methods that don't go elsewhere...
 
 =head2 get_http( URI )
 
@@ -1145,39 +975,42 @@ Returns the content of an HTTP request to the given URI on the host.
 
 sub get_http
 {
-  my $self = shift or confess('Missing SELF parameter');
-  my $uri  = shift or confess('Missing URI parameter');
-  my $opts = validate(@_, {
-      user => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "user")
-                                        ? $self->opts->user : undef) },
-      pass => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "pass")
-                                        ? $self->opts->pass : undef) },
-      port => { type=>SCALAR, default=>(UNIVERSAL::can($self->opts, "port")
-                                        ? $self->opts->port : undef)},
-      });
+    my $self = shift or confess('Missing SELF parameter');
+    my $uri  = shift or confess('Missing URI parameter');
+    my $opts = validate(@_, {
+        user => { type=>SCALAR,
+                  default=>(UNIVERSAL::can($self->opts, "user")
+                            ? $self->opts->user : undef) },
+        pass => { type=>SCALAR,
+                  default=>(UNIVERSAL::can($self->opts, "pass")
+                            ? $self->opts->pass : undef) },
+        port => { type=>SCALAR,
+                  default=>(UNIVERSAL::can($self->opts, "port")
+                            ? $self->opts->port : undef)},
+    });
 
-  $self->plugin_exit(Monitoring::Plugin::UNKNOWN,
-                     "The get_http() method is only ".
-                     "supported when --hostname is set.")
-    unless !$self->{local} && $self->opts->hostname;
+    $self->plugin_exit(UNKNOWN,
+                       "The get_http() method is only ".
+                       "supported when --hostname is set.")
+        unless !$self->{local} && $self->opts->hostname;
 
-  my $url = 'http://'.$self->opts->hostname;
-  $url .= ':'.$opts->{port} if $opts->{port};
-  $url .= $uri;
-  dump('get_url', $url);
+    my $url = 'http://'.$self->opts->hostname;
+    $url .= ':'.$opts->{port} if $opts->{port};
+    $url .= $uri;
 
-  my $ua  = LWP::UserAgent->new;
-  my $req = HTTP::Request->new(GET => $url);
-  
-  $req->authorization_basic($opts->{user}||'', $opts->{pass}||'')
-    if ($opts->{user} || $opts->{pass});
+    my $ua  = LWP::UserAgent->new;
+    my $req = HTTP::Request->new(GET => $url);
 
-  my $res = $ua->request($req);
-  dump('RESPONSE', $res);
-  return undef if $res->is_error;
-  return $res->content;
+    $req->authorization_basic($opts->{user}||'', $opts->{pass}||'')
+        if ($opts->{user} || $opts->{pass});
+
+    my $res = $ua->request($req);
+    return undef if $res->is_error;
+    return $res->content;
 }
 
+# Internal utility for parsing perfdata strings into a hash of 
+# Monitoring::Plugin::Performance objects indexes by label.
 sub _parse_perfdata
 {
   my $perfdata = shift || '';
@@ -1243,4 +1076,4 @@ Paul Dugas may be contacted at the addresses below:
 1; # End of Dugas::Monitoring::Plugin
 
 # -----------------------------------------------------------------------------
-# vim: set et ts=2 sw=2 :
+# vim: set et ts=4 sw=4 :

@@ -1,28 +1,25 @@
 #!/usr/bin/perl -w
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     bin/eg-mx-sr
-# @brief    Example use of the Maximo API to create an SR.
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use strict;
 
 use FindBin;
 use lib "$FindBin::Bin/../lib";
 
-use MIME::Base64;
 use Dugas::App;
 use Dugas::Logger;
 use Dugas::Maximo;
+use MIME::Base64;
 
-my $app = new Dugas::App( conf => 'eg.conf', 
-                          opts => [ { spec => 'location|L=s' } ,
-                                    { spec => 'asset|A=s' } ,
-                                    { spec => 'host|H=s' },
-                                    { spec => 'user|U=s' },
-                                    { spec => 'pass|P=s' } ] );
+my $app = new Dugas::App(conf => 'eg.conf', 
+                         opts => [ { spec => 'location|L=s' },
+                                   { spec => 'asset|A=s' },
+                                   { spec => 'host|H=s' },
+                                   { spec => 'user|U=s' },
+                                   { spec => 'pass|P=s' } ]);
 my $host = $app->conf('maximo', 'host', 'host');
 my $user = $app->conf('maximo', 'user', 'user');
 my $pass = $app->conf('maximo', 'pass', 'pass');
@@ -95,7 +92,6 @@ my %params = (
   'DESCRIPTION_LONGDESCRIPTION' => $LONGDESCRIPTION,
 );
 
-
 $params{LOCATION} = $loc->{LOCATION} if ($loc);
 $params{ASSETNUM} = $asset->{ASSETNUM} if ($asset);
 
@@ -125,7 +121,6 @@ dump('RESPONSE1', $res1);
 my $res2 = $mx->post_os('PDSR', $res->{TICKETUID}, %params);
 dump('RESPONSE2', $res2);
 #info("Added WORKLOG#$res->{TICKETID}.");
-
 
 debug("Done.");
 0;
@@ -199,5 +194,5 @@ this manual; if not, see <http://www.gnu.org/licenses/>.
 
 =cut
 
-# =============================================================================
-# vim: set et sw=2 ts=2 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

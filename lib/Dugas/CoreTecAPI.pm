@@ -1,10 +1,7 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/CoreTecAPI.pm
-# @brief    CoreTec Communications Encoder/Decoder API Wrapper class
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::CoreTecAPI;
 
@@ -252,16 +249,16 @@ B<Dugas::CoreTecAPI::DEFAULT_PORT>.
 
 sub new
 {
-  my $class = shift or confess('Missing CLASS parameter');
+    my $class = shift or confess('Missing CLASS parameter');
 
-  my $obj = validate( @_, {
-    timeout => { type    => SCALAR,
-                 default => DEFAULT_TIMEOUT },
-  });
+    my $obj = validate( @_, {
+                              timeout => { type    => SCALAR,
+                                           default => DEFAULT_TIMEOUT },
+                            });
 
-  bless $obj, $class;
+    bless $obj, $class;
 
-  return $obj;
+    return $obj;
 }
 
 =head1 METHODS
@@ -278,22 +275,22 @@ Returns true on success or C<undef> otherwise.
 =cut
 
 sub open {
-  my $self = shift or confess('Missing SELF parameter');
-  my $host = shift or confess('Missing HOST parameter');
-  my $port = shift || DEFAULT_PORT;
-  carp("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    my $host = shift or confess('Missing HOST parameter');
+    my $port = shift || DEFAULT_PORT;
+    carp("Ignoring extra parameters") if @_;
 
-  my $sock = new IO::Socket::INET(PeerHost => $host,
-                                  PeerPort => $port,
-                                  Timeout  => $self->{timeout},,
-                                  Proto    => 'tcp');
-  unless ($sock) {
-    error("CoreTecAPI connect failed; $@");
-    return undef;
-  }
+    my $sock = new IO::Socket::INET(PeerHost => $host,
+                                    PeerPort => $port,
+                                    Timeout  => $self->{timeout},,
+                                    Proto    => 'tcp');
+    unless ($sock) {
+        error("CoreTecAPI connect failed; $@");
+        return undef;
+    }
 
-  $self->{sock} = $sock;
-  return 1;
+    $self->{sock} = $sock;
+    return 1;
 }
 
 =head2 close
@@ -303,13 +300,13 @@ Close the connection if it's open.
 =cut
 
 sub close {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
 
-  if ($self->is_open()) {
-    $self->{sock}->close();
-    undef $self->{sock};
-  }
+    if ($self->is_open()) {
+        $self->{sock}->close();
+        undef $self->{sock};
+    }
 }
 
 =head2 is_open
@@ -319,10 +316,10 @@ Returns true of the connection to the CoreTec device is open.
 =cut
 
 sub is_open {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
 
-  return (exists $self->{sock} && defined $self->{sock});
+    return (exists $self->{sock} && defined $self->{sock});
 }
 
 =head2 reset
@@ -332,10 +329,10 @@ Perfrom a reset of the encode/decode operation.
 =cut
 
 sub reset {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Not connected") unless $self->is_open();
-  $self->_cmd(CMD_RESET);
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Not connected") unless $self->is_open();
+    $self->_cmd(CMD_RESET);
 }
 
 =head2 play
@@ -345,10 +342,10 @@ Start the encode/decode operation.
 =cut
 
 sub play {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Not connected") unless $self->is_open();
-  $self->_cmd(CMD_PLAY);
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Not connected") unless $self->is_open();
+    $self->_cmd(CMD_PLAY);
 }
 
 =head2 stop
@@ -358,10 +355,10 @@ Stop the encode/decode operation.
 =cut
 
 sub stop {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Not connected") unless $self->is_open();
-  $self->_cmd(CMD_STOP);
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Not connected") unless $self->is_open();
+    $self->_cmd(CMD_STOP);
 }
 
 =head2 version
@@ -371,10 +368,10 @@ Returns the formware version.
 =cut
 
 sub version {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Not connected") unless $self->is_open();
-  return $self->get(CMD_DEVICE_VERSION);
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Not connected") unless $self->is_open();
+    return $self->get(CMD_DEVICE_VERSION);
 }
 
 =head2 video_status
@@ -384,9 +381,9 @@ Returns the video input status for an encoder.
 =cut
 
 sub video_status {
-  my $self = shift or confess('Missing SELF parameter');
-  croak("Ignoring extra parameters") if @_;
-  return unpack('V', $self->get(CMD_CHECK_VIDEO_STATUS));
+    my $self = shift or confess('Missing SELF parameter');
+    croak("Ignoring extra parameters") if @_;
+    return unpack('V', $self->get(CMD_CHECK_VIDEO_STATUS));
 }
 
 =head2 video_uptime
@@ -396,10 +393,10 @@ Returns the video stream uptime (on seconds) for a decoder.
 =cut
 
 sub video_uptime {
-  my $self = shift or confess('Missing SELF parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Ignoring extra parameters") if @_;
-  return unpack('V', $self->get(CMD_VIDEO_UPTIME));
+    my $self = shift or confess('Missing SELF parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Ignoring extra parameters") if @_;
+    return unpack('V', $self->get(CMD_VIDEO_UPTIME));
 }
 
 =head2 name
@@ -411,16 +408,16 @@ Get/set the device name.
 =cut
 
 sub name {
-  my $self = shift or confess('Missing SELF parameter');
-  my $name = shift;
-  carp("Ignoring extra parameters") if @_;
-  croak("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    my $name = shift;
+    carp("Ignoring extra parameters") if @_;
+    croak("Ignoring extra parameters") if @_;
 
-  if (defined $name) {
-    $self->set(CMD_DEVICE_NAME, $name);
-  } else {
-    return $self->get(CMD_DEVICE_NAME);
-  }
+    if (defined $name) {
+        $self->set(CMD_DEVICE_NAME, $name);
+    } else {
+        return $self->get(CMD_DEVICE_NAME);
+    }
 }
 
 =head2 set COMMAND
@@ -433,23 +430,23 @@ C<undef> otherwise.
 =cut
 
 sub set {
-  my $self = shift or confess('Missing SELF parameter');
-  my $cmd  = shift or confess('Missing COMMAND parameter');
-  my $data  = shift or confess('Missing COMMAND parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    my $cmd  = shift or confess('Missing COMMAND parameter');
+    my $data  = shift or confess('Missing COMMAND parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Ignoring extra parameters") if @_;
 
-  my $pkt = pack('VVVVVa', PKT_SYNC1, PKT_SYNC2, PKT_VERSION, $cmd, 
-                 ($data ? length($data) : 0),
-                 ($data ? $data : ''));
-  hexdump('set', $pkt);
+    my $pkt = pack('VVVVVa', PKT_SYNC1, PKT_SYNC2, PKT_VERSION, $cmd, 
+                   ($data ? length($data) : 0),
+                   ($data ? $data : ''));
+    hexdump('set', $pkt);
 
-  unless ($self->{sock}->send($pkt) == length($pkt)) {
-    error("send() failed; $!");
-    return undef;
-  }
+    unless ($self->{sock}->send($pkt) == length($pkt)) {
+        error("send() failed; $!");
+        return undef;
+    }
 
-  return 1;
+    return 1;
 }
 
 =head2 get COMMAND
@@ -460,50 +457,50 @@ Returns the raw data from the response.
 =cut
 
 sub get {
-  my $self = shift or confess('Missing SELF parameter');
-  my $get  = shift or confess('Missing COMMAND parameter');
-  carp("Ignoring extra parameters") if @_;
-  croak("Ignoring extra parameters") if @_;
+    my $self = shift or confess('Missing SELF parameter');
+    my $get  = shift or confess('Missing COMMAND parameter');
+    carp("Ignoring extra parameters") if @_;
+    croak("Ignoring extra parameters") if @_;
 
-  unless ($self->set(CMD_QUERY, pack('v', $get))) {
-    error("set(CMD_QUERY) failed; $!");
-    return undef;
-  }
-
-  my $pkt;
-  unless (defined $self->{sock}->recv($pkt, 20)) {
-    error("recv(head) failed; $!");
-    return undef;
-  }
-  hexdump('get_head', $pkt);
-  unless (length($pkt) == 20) {
-    error("recv(head) got %d instead of 20", length($pkt));
-    return undef;
-  }
-
-  my ($sync1, $sync2, $ver, $got, $len) = unpack('VVVVV', $pkt);
-  unless (PKT_SYNC1 == $sync1 && PKT_SYNC2 == $sync2 && PKT_VERSION == $ver) {
-    error("Invalid packet header");
-    return undef;
-  }
-  
-  if ($len) {
-    $self->{sock}->recv($pkt, $len);
-    hexdump('data', $pkt);
-    unless (length($pkt) == $len) {
-      error("recv(data) got %d instead of %d", length($pkt), $len);
-      return undef;
+    unless ($self->set(CMD_QUERY, pack('v', $get))) {
+        error("set(CMD_QUERY) failed; $!");
+        return undef;
     }
-  } else {
-    $pkt = undef;
-  }
 
-  unless ($got == $got) {
-    error("Got %d instead of %d", $got, $get);
-    return undef;
-  }
+    my $pkt;
+    unless (defined $self->{sock}->recv($pkt, 20)) {
+        error("recv(head) failed; $!");
+        return undef;
+    }
+    hexdump('get_head', $pkt);
+    unless (length($pkt) == 20) {
+        error("recv(head) got %d instead of 20", length($pkt));
+        return undef;
+    }
 
-  return $pkt;
+    my ($sync1, $sync2, $ver, $got, $len) = unpack('VVVVV', $pkt);
+    unless (PKT_SYNC1 == $sync1 && PKT_SYNC2 == $sync2 && PKT_VERSION == $ver) {
+        error("Invalid packet header");
+        return undef;
+    }
+
+    if ($len) {
+        $self->{sock}->recv($pkt, $len);
+        hexdump('data', $pkt);
+        unless (length($pkt) == $len) {
+            error("recv(data) got %d instead of %d", length($pkt), $len);
+            return undef;
+        }
+    } else {
+        $pkt = undef;
+    }
+
+    unless ($got == $got) {
+        error("Got %d instead of %d", $got, $get);
+        return undef;
+    }
+
+    return $pkt;
 }
 
 =head1 AUTHOR
@@ -552,5 +549,5 @@ Paul Dugas may be contacted at the addresses below:
 
 1; # End of Dugas::App
 
-# =============================================================================
-# vim: set et sw=2 ts=2 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

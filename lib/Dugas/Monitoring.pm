@@ -1,25 +1,23 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/Monitoring.pm
-# @brief    Perl module for our Nagios utilities.
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::Monitoring;
 
 use 5.006;
 use strict;
 use warnings FATAL => 'all';
-use Cwd;
+
 use Carp;
-use File::Spec;
+use Cwd;
 use Dugas::Logger;
+use File::Spec;
 use Params::Validate qw(:all);
 
 =head1 NAME
 
-Dugas::Monitoring - Nagios setup information.
+Dugas::Monitoring - Monitoring system setup information.
 
 =head1 VERSION
 
@@ -33,99 +31,12 @@ our $VERSION = '0.1';
 
     use Dugas::Monitoring;
 
-    print Dugas::Monitoring::BASEDIR, "\n";
-    ...
-
 =head1 DESCRIPTION
 
 The B<Dugas::Monitoring> module provides a handful of routines we use for our
-Nagios installations - mostly, paths and other static stuff.
+monitoring installations.
 
 =cut
-
-# This will be the top-level directory where we expect to find the bin/, etc/,
-# lib/, and etc/nagios.d/ subdirectories.
-my $basedir;
-
-# Handle parameters passed when the module is use'd.
-sub import
-{
-  my $name = shift; # module name.  ignored
-
-  # $dir will be our initial, two levels up from where this file lives.
-  my ($vol, $dir, $file) = File::Spec->splitpath(__FILE__);
-  $dir = Cwd::realpath(File::Spec->catdir($dir, (File::Spec->updir()) x 2));
-
-  # Process parameters.
-  my $opts = validate(@_, {BASEDIR => {type => SCALAR, default => $dir}});
-  $basedir = $opts->{BASEDIR};
-
-  # Warn if BASEDIR doesn't seem right.
-  if (-d $basedir) {
-    notice("Nagios BASEDIR ($basedir) may not be correct.")
-      unless (-d BINDIR() && -d ETCDIR() && -d LIBDIR());
-  } else {
-    notice("Nagios BASEDIR ($basedir) doesn't exist.")
-  }
-} # import()
-
-=head1 CONSTANTS
-
-=head2 B<BASEDIR>
-
-Returns the full path for the top-level directory for the Nagios setup.  We
-expect this folder to contain nagios.conf, bin/, etc/, and lib/.  By default,
-this will be two levels up from the Monitoring.pm Perl module itself since we
-typically deploy things that way.
-
-The B<BASEDIR> value can be overridden when use'ing the module like so:
-
-  use Dugas::Monitoring( BASEDIR => '/opt/nagios' );
-
-=cut
-
-sub BASEDIR { return $basedir; }
-
-=head2 B<BINDIR>
-
-Returns the full path for the C<bin/> subdirectory under B<BASEDIR>.
-
-=cut
-
-sub BINDIR { return BASEDIR().'/bin'; }
-
-=head2 B<ETCDIR>
-
-Returns the full path for the C<etc/> subdirectory under B<BASEDIR>.
-
-=cut
-
-sub ETCDIR { return BASEDIR().'/etc'; }
-
-=head2 B<LIBDIR>
-
-Returns the full path for the C<lib/> subdirectory under B<BASEDIR>.
-
-=cut
-
-sub LIBDIR { return BASEDIR().'/lib'; }
-
-=head2 B<NAGDIR>
-
-Returns the full path for the main C<etc/nagios.d/> subdirectory under
-B<BASEDIR>.
-
-=cut
-
-sub NAGDIR { return ETCDIR().'/nagios.d'; }
-
-=head2 B<NAGCFG>
-
-Returns the full path for the main C<etc/nagios.cfg> file under B<BASEDIR>.
-
-=cut
-
-sub NAGCFG { return ETCDIR().'/nagios.cfg'; }
 
 =head1 SUBROUTINES
 
@@ -135,16 +46,17 @@ Returns the string name for a given host I<STATE>.
 
 =cut
 
-sub host_state_name {
-  my $state = shift;
-  croak("Missing STATE parameter")
-      unless defined $state;
+sub host_state_name
+{
+    my $state = shift;
+    croak("Missing STATE parameter")
+        unless defined $state;
 
-  if ($state == 0)  { return 'UP'; }
-  if ($state == 1)  { return 'DOWN'; }
-  if ($state == 2)  { return 'UNREACHABLE'; }
+    if ($state == 0)  { return 'UP'; }
+    if ($state == 1)  { return 'DOWN'; }
+    if ($state == 2)  { return 'UNREACHABLE'; }
 
-  croak("Invalid STATE paremeter value; $state");
+    croak("Invalid STATE paremeter value; $state");
 }
 
 =head2 service_state_name ( STATE )
@@ -153,17 +65,18 @@ Returns the string name for a given service I<STATE>.
 
 =cut
 
-sub service_state_name {
-  my $state = shift;
-  croak("Missing STATE parameter")
-      unless defined $state;
+sub service_state_name
+{
+    my $state = shift;
+    croak("Missing STATE parameter")
+        unless defined $state;
 
-  if ($state == 0)  { return 'OK'; }
-  if ($state == 1)  { return 'WARNING'; }
-  if ($state == 2)  { return 'CRITICAL'; }
-  if ($state == 3)  { return 'UNKNOWN'; }
+    if ($state == 0)  { return 'OK'; }
+    if ($state == 1)  { return 'WARNING'; }
+    if ($state == 2)  { return 'CRITICAL'; }
+    if ($state == 3)  { return 'UNKNOWN'; }
 
-  croak("Invalid STATE parameter value; $state");
+    croak("Invalid STATE parameter value; $state");
 }
 
 =head2 state_type_name ( TYPE )
@@ -172,15 +85,16 @@ Returns the string name for a given state B<TYPE>.
 
 =cut
 
-sub state_type_name {
-  my $type = shift;
-  croak("Missing TYPE parameter")
-      unless defined $type;
+sub state_type_name
+{
+    my $type = shift;
+    croak("Missing TYPE parameter")
+        unless defined $type;
 
-  if ($type == 0)  { return 'SOFT'; }
-  if ($type == 1)  { return 'HARD'; }
+    if ($type == 0)  { return 'SOFT'; }
+    if ($type == 1)  { return 'HARD'; }
 
-  croak("Invalid TYPE parameter value; $type");
+    croak("Invalid TYPE parameter value; $type");
 }
 
 =head1 SEE ALSO
@@ -227,7 +141,7 @@ Paul Dugas may be contacted at the addresses below:
 
 =cut
 
-1; # End of Dugas::Nagios
+1; # End of Dugas::Monitoring
 
-# =============================================================================
-# vim: set et ts=4 sw=4 :
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

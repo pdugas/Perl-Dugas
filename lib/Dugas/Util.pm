@@ -1,10 +1,7 @@
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     lib/Dugas/Util.pm
-# @brief    Generic utilities
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 package Dugas::Util;
 
@@ -23,7 +20,6 @@ Version 0.1
 =cut
 
 our $VERSION = '0.1';
-
 
 =head1 SYNOPSIS
 
@@ -60,55 +56,60 @@ i.e. sec2dhms(1234567.89) returns "14 days 06:56:07.89"
 
 =cut
 
-sub sec2dhms($) {
-  # Implementation taken directly from Net::SNMP::Message::asn1_ticks_to_time()
-  # and copied here to eliminate the dependency on the Net::SNMP module where
-  # possible.
-  my $ticks = (shift || 0) * 100;
+sub sec2dhms($)
+{
+    my $ticks = (shift || 0) * 100;
 
-  my $days = int($ticks / (24 * 60 * 60 * 100));
-  $ticks %= (24 * 60 * 60 * 100);
+    my $days = int($ticks / (24 * 60 * 60 * 100));
+    $ticks %= (24 * 60 * 60 * 100);
 
-  my $hours = int($ticks / (60 * 60 * 100));
-  $ticks %= (60 * 60 * 100);
+    my $hours = int($ticks / (60 * 60 * 100));
+    $ticks %= (60 * 60 * 100);
 
-  my $minutes = int($ticks / (60 * 100));
-  $ticks %= (60 * 100);
+    my $minutes = int($ticks / (60 * 100));
+    $ticks %= (60 * 100);
 
-  my $seconds = ($ticks / 100);
+    my $seconds = ($ticks / 100);
 
-  if ($days != 0){
-      return sprintf '%d day%s %02d:%02d:%05.02f', $days,
-      ($days == 1 ? q{} : 's'), $hours, $minutes, $seconds;
-  } elsif ($hours != 0) {
-      return sprintf '%d hour%s %02d:%05.02f', $hours,
-      ($hours == 1 ? q{} : 's'), $minutes, $seconds;
-  } elsif ($minutes != 0) {
-      return sprintf '%d minute%s %05.02f', $minutes,
-      ($minutes == 1 ? q{} : 's'), $seconds;
-  } else {
-      return sprintf '%04.02f second%s', $seconds, ($seconds == 1 ? q{} : 's');
-  }
-} # sec2dhms()
+    if ($days != 0) {
+        return sprintf '%d day%s %02d:%02d:%05.02f', $days,
+               ($days == 1 ? q{} : 's'), $hours, $minutes, $seconds;
+    } elsif ($hours != 0) {
+        return sprintf '%d hour%s %02d:%05.02f', $hours,
+               ($hours == 1 ? q{} : 's'), $minutes, $seconds;
+    } elsif ($minutes != 0) {
+        return sprintf '%d minute%s %05.02f', $minutes,
+               ($minutes == 1 ? q{} : 's'), $seconds;
+    } else {
+        return sprintf '%04.02f second%s', $seconds, ($seconds == 1 ? q{} : 's');
+    }
+}
 
-=head2 STRING = human( INTEGER )
+=head2 STRING = human( NUMBER )
 
-Convert a given number into a human-readable string.
+Convert a given number into a human-readable string.  Uses base-2 metric-like
+unit prefixes; i.e. 1024 instead of 1000.
 
 =cut
 
-sub human {
-  my $b = shift; confess("Missing INTEGER parameter") unless defined $b;
-  confess("INTEGER parameter cannot be negative") if $b < 0;
-  if ($b > 2**80) { return sprintf('%.1fY', $b / 2**80); }
-  if ($b > 2**70) { return sprintf('%.1fZ', $b / 2**70); }
-  if ($b > 2**60) { return sprintf('%.1fE', $b / 2**60); }
-  if ($b > 2**50) { return sprintf('%.1fP', $b / 2**50); }
-  if ($b > 2**40) { return sprintf('%.1fT', $b / 2**40); }
-  if ($b > 2**30) { return sprintf('%.1fG', $b / 2**30); }
-  if ($b > 2**20) { return sprintf('%.1fM', $b / 2**20); }
-  if ($b > 2**10) { return sprintf('%.1fk', $b / 2**10); }
-  return sprintf('%dB', $b); 
+sub human
+{
+  my $n = shift;
+  confess("Missing NUMBER parameter")
+      unless defined $b;
+  confess("NUMBER parameter cannot be negative")
+      if $n < 0;
+
+  if ($n > 2**80) { return sprintf('%.1fY', $n / 2**80); }
+  if ($n > 2**70) { return sprintf('%.1fZ', $n / 2**70); }
+  if ($n > 2**60) { return sprintf('%.1fE', $n / 2**60); }
+  if ($n > 2**50) { return sprintf('%.1fP', $n / 2**50); }
+  if ($n > 2**40) { return sprintf('%.1fT', $n / 2**40); }
+  if ($n > 2**30) { return sprintf('%.1fG', $n / 2**30); }
+  if ($n > 2**20) { return sprintf('%.1fM', $n / 2**20); }
+  if ($n > 2**10) { return sprintf('%.1fk', $n / 2**10); }
+
+  return sprintf('%.1f', $n); 
 }
 
 =head1 AUTHOR
@@ -153,5 +154,5 @@ Paul Dugas may be contacted at the addresses below:
 
 1; # End of Dugas
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # vim: set et sw=4 ts=4 :

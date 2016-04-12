@@ -1,11 +1,8 @@
 #!/usr/bin/perl -w
-#=============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     bin/eg-plugin
-# @brief    Example Nagios plugin
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use strict;
 
@@ -81,9 +78,8 @@ PARTICULAR PURPOSE.  See the GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License along with
 this manual; if not, see <http://www.gnu.org/licenses/>.
-
   
 =cut
 
-# =============================================================================
+# -----------------------------------------------------------------------------
 # vim: set et sw=4 ts=4 :

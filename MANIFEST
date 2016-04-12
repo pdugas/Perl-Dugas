@@ -1,3 +1,8 @@
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
+
 Changes
 LICENSE
 MANIFEST			This list of files
@@ -9,8 +14,7 @@ bin/README.md
 bin/eg-app
 bin/eg-plugin
 bin/eg-mx-sr
-etc/eg.conf
-etc/maximo.conf.example
+etc/dugas.conf
 img/example.png
 lib/Dugas.pm
 lib/Dugas/App.pm
@@ -34,3 +38,6 @@ t/boilerplate.t
 t/manifest.t
 t/pod-coverage.t
 t/pod.t
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :

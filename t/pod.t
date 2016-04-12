@@ -1,11 +1,8 @@
 #!perl -T
-# =============================================================================
-# perl-Dugas - The Dugas Family of Perl Modules
-# =============================================================================
-# @file     t/pod.t
-# @brief    Unit-Tests
-# @author   Paul Dugas <paul@dugas.cc>
-# =============================================================================
+# -----------------------------------------------------------------------------
+# perl-Dugas - The Dugas Enterprises Perl Modules
+# Copyright (C) 2013-2016 by Paul Dugas and Dugas Enterprises, LLC
+# -----------------------------------------------------------------------------
 
 use 5.006;
 use strict;
@@ -18,3 +15,6 @@ eval "use Test::Pod $min_tp";
 plan skip_all => "Test::Pod $min_tp required for testing POD" if $@;
 
 all_pod_files_ok();
+
+# -----------------------------------------------------------------------------
+# vim: set et sw=4 ts=4 :
