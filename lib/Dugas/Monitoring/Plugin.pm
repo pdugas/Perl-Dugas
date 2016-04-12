@@ -554,16 +554,21 @@ The following B<Monitoring::Plugin> methods are being extended.
 
 =head2 plugin_exit( CODE, MESSAGE, [LONG_TEXT] )
 
-We've extended the baseclass version to add the lines from C<add_output()>.
+We've extended the baseclass version to add the lines from C<add_output()>
+and to used C<check_messages()> of C<CODE> is missing.
 
 =cut
 
 sub plugin_exit
 {
     my $self = shift or confess('Missing SELF parameter');
-    my $code = shift; $code = uc($code) unless $code =~ /^\d+$/;
+    my $code = shift;
     my $msg  = shift;
     my $long = shift;
+
+    ($code, $msg) = $self->check_messages()
+
+    $code = uc($code);
 
     $msg .= "\n".join("\n", @{$self->{output}}) if $self->{output};
     $msg .= "\n".$long                          if $long;
