@@ -65,7 +65,7 @@ make RELEASE_TESTING=1 test
 %doc README.md LICENSE
 %{perl_vendorlib}/*
 %{_mandir}/man3/*
-%attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
+#%attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
 
 %changelog
 * Tue Apr 12 2016 Paul Dugas <paul@dugas.cc>
