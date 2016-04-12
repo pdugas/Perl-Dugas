@@ -23,11 +23,11 @@ Dugas::Maximo - Wrapper Class for the Maximo REST API
 
 =head1 VERSION
 
-Version 0.1
+Version 0.2
 
 =cut
 
-our $VERSION = '0.1';
+our $VERSION = '0.2';
 
 =head1 SYNOPSIS
 

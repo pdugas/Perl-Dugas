@@ -4,7 +4,7 @@
 # -----------------------------------------------------------------------------
 
 Name:		perl-Dugas
-Version:	0.1
+Version:	0.2
 Release:	1%{?dist}
 Summary:	Dugas Perl Modules
 Group:		Develpment/Libraries
@@ -68,6 +68,8 @@ make RELEASE_TESTING=1 test
 %attr(644,root,root) %config(noreplace) %{_sysconfdir}/dugas.conf
 
 %changelog
+* Tue Apr 12 2016 Paul Dugas <paul@dugas.cc>
+- Initial 0.2 release.
 * Fri Apr  1 2016 Paul Dugas <paul@dugas.cc>
 - Initial 0.1 release.
 * Mon Mar 28 2016 Paul Dugas <paul@dugas.cc>

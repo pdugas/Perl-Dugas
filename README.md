@@ -64,7 +64,7 @@ Building an RPM package is a matter of the following on a RedHat/CentOS machine.
 
     # yum install -y rpm-build redhat-rpm-config rpmdevtools yum-utils
     # rpmdev-setuptree
-    # wget https://raw.githubusercontent.com/pdugas/perl-Dugas/0.1/perl-Dugas.spec
+    # wget https://raw.githubusercontent.com/pdugas/perl-Dugas/0.2/perl-Dugas.spec
     # spectool -g -R perl-Dugas.spec
     # yum-builddep -y perl-Dugas.spec
     # rpmbuild -ba perl-Dugas.spec
